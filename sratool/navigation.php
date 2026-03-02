@@ -37,11 +37,11 @@
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="user-dropdown-menu" id="userDropdownMenu">
-                        <a href="../portal.php" class="dropdown-item">
+                        <a href="../portal" class="dropdown-item">
                             <i class="fas fa-arrow-left"></i> Back to Portal
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a href="../portal.php?logout=1" class="dropdown-item dropdown-item-danger">
+                        <a href="../portal?logout=1" class="dropdown-item dropdown-item-danger">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </a>
                     </div>
@@ -58,24 +58,24 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 <nav class="nav-bar">
     <ul>
         <li>
-            <a href="dashboard.php" class="<?= ($current_page == 'dashboard.php') ? 'active' : '' ?>">
+            <a href="dashboard" class="<?= ($current_page == 'dashboard.php') ? 'active' : '' ?>">
                 <i class="fas fa-home"></i> Dashboard
             </a>
         </li>
         <li>
-            <a href="borrow_tool.php" class="<?= ($current_page == 'borrow_tool.php') ? 'active' : '' ?>">
+            <a href="borrow_tool" class="<?= ($current_page == 'borrow_tool.php') ? 'active' : '' ?>">
                 <i class="fas fa-hand-holding"></i> Borrow Tool
             </a>
         </li>
 
         <?php if ($user_role == 'admin' || $user_role == 'moderator'): ?>
         <li>
-            <a href="return_tool.php" class="<?= ($current_page == 'return_tool.php') ? 'active' : '' ?>">
+            <a href="return_tool" class="<?= ($current_page == 'return_tool.php') ? 'active' : '' ?>">
                 <i class="fas fa-undo"></i> Return Tool
             </a>
         </li>
         <li>
-            <a href="records.php" class="<?= ($current_page == 'records.php') ? 'active' : '' ?>">
+            <a href="records" class="<?= ($current_page == 'records.php') ? 'active' : '' ?>">
                 <i class="fas fa-list"></i> Records & Reports
             </a>
         </li>
@@ -86,20 +86,21 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
                 <i class="fas fa-boxes"></i> Stocks <i class="fas fa-caret-down caret-icon"></i>
             </a>
             <ul class="dropdown-menu" id="stocksMenu" role="menu">
-                <li><a href="consumables.php" class="<?= ($current_page == 'consumables.php') ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Consumables</a></li>
-                <li><a href="motors.php" class="<?= ($current_page == 'motors.php') ? 'active' : '' ?>"><i class="fas fa-cog"></i> Automations & Accessories</a></li>
-                <li><a href="intercom.php" class="<?= ($current_page == 'intercom.php') ? 'active' : '' ?>"><i class="fas fa-video"></i> Video Intercom</a></li>
-                <li><a href="efence.php" class="<?= ($current_page == 'efence.php') ? 'active' : '' ?>"><i class="fas fa-shield-alt"></i> E-Fences</a></li>
+                <li><a href="consumables" class="<?= ($current_page == 'consumables.php') ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Consumables</a></li>
+                <li><a href="motors" class="<?= ($current_page == 'motors.php') ? 'active' : '' ?>"><i class="fas fa-cog"></i> Automations & Accessories</a></li>
+                <li><a href="intercom" class="<?= ($current_page == 'intercom.php') ? 'active' : '' ?>"><i class="fas fa-video"></i> Video Intercom</a></li>
+                <li><a href="efence" class="<?= ($current_page == 'efence.php') ? 'active' : '' ?>"><i class="fas fa-shield-alt"></i> E-Fences</a></li>
             </ul>
         </li>
         <li>
-            <a href="motor_get.php" class="<?= ($current_page == 'motor_get.php') ? 'active' : '' ?>">
+            <a href="motor_get class="<?= ($current_page == 'motor_get.php') ? 'active' : '' ?>">
                 <i class="fas fa-cog"></i> Record Acquisition
             </a>
         </li>
         <?php endif; ?>
     </ul>
 </nav>
+
 
 
 
