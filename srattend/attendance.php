@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-require_once 'config.php';
+require_once '../config.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -156,4 +156,5 @@ if ($method === 'POST') {
 echo json_encode(['success' => false, 'message' => 'Invalid request']);
 
 $conn->close();
+
 
