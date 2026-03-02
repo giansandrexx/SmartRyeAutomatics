@@ -4,7 +4,7 @@ date_default_timezone_set('Asia/Manila');
 define('DB_HOST', 'yamabiko.proxy.rlwy.net');
 define('DB_USER', 'root');
 define('DB_PASS', 'hNbjjSsOIXttYqvrtrLQIIspURSMfeYo');
-define('DB_NAME', 'srasystem');
+define('DB_NAME', 'railway');
 
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
