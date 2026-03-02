@@ -177,42 +177,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs } 
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDsdB03wvIA_3y7L6EsMOAswBZna-OveQU",
-    authDomain: "smartryeautomatics-87f2d.firebaseapp.com",
-    projectId: "smartryeautomatics-87f2d",
-    storageBucket: "smartryeautomatics-87f2d.firebasestorage.app",
-    messagingSenderId: "154881240058",
-    appId: "1:154881240058:web:6f3b909d19b3d465fc1243"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  async function addData() {
-    await addDoc(collection(db, "users"), {
-      name: "Test User",
-      age: 20
-    });
-    alert("Data Added!");
-  }
-
-  async function getData() {
-    const querySnapshot = await getDocs(collection(db, "users"));
-    querySnapshot.forEach((doc) => {
-      console.log(doc.data());
-    });
-  }
-
-  window.addData = addData;
-  window.getData = getData;
-</script>
-<button onclick="addData()">Add Data</button>
-<button onclick="getData()">Get Data</button>
+    
 </body>
 </html>
