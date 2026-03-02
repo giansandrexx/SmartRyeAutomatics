@@ -93,7 +93,7 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
             </ul>
         </li>
         <li>
-            <a href="motor_get class="<?= ($current_page == 'motor_get.php') ? 'active' : '' ?>">
+            <a href="motor_get" class="<?= ($current_page == 'motor_get.php') ? 'active' : '' ?>">
                 <i class="fas fa-cog"></i> Record Acquisition
             </a>
         </li>
@@ -105,3 +105,4 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 
 
 <script src="../js/dropdown.js"></script>
+
