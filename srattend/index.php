@@ -34,9 +34,9 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
             <div class="user-dropdown-wrap">
                 <button class="user-dropdown-toggle" id="userDropdownBtn"><i class="fas fa-chevron-down"></i></button>
                 <div class="user-dropdown-menu" id="userDropdownMenu">
-                    <a href="../portal.php" class="dropdown-item"><i class="fas fa-arrow-left"></i> Back to Portal</a>
+                    <a href="../portal" class="dropdown-item"><i class="fas fa-arrow-left"></i> Back to Portal</a>
                     <div class="dropdown-divider"></div>
-                    <a href="../sratool/logout.php" class="dropdown-item dropdown-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    <a href="../sratool/logout" class="dropdown-item dropdown-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>
         </div>
@@ -51,12 +51,12 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 <nav class="nav-bar">
     <ul>
         <li>
-            <a href="index.php" class="<?= ($current_page == 'index.php') ? 'active' : '' ?>">
+            <a href="index" class="<?= ($current_page == 'index') ? 'active' : '' ?>">
                 <i class="fa fa-address-card"></i> Attendance
             </a>
         </li>
         <li>
-            <a href="overtime.php" class="<?= ($current_page == 'overtime.php') ? 'active' : '' ?>">
+            <a href="overtime" class="<?= ($current_page == 'overtime') ? 'active' : '' ?>">
                 <i class="fa fa-briefcase"></i> Overtime Monitoring
             </a>
         </li>
@@ -140,4 +140,5 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
         new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 </script>
 </body>
+
 </html>
