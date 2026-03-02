@@ -5,8 +5,9 @@ define('DB_HOST', 'yamabiko.proxy.rlwy.net');
 define('DB_USER', 'root');
 define('DB_PASS', 'hNbjjSsOIXttYqvrtrLQIIspURSMfeYo');
 define('DB_NAME', 'railway');
+define('DB_PORT', 22312);
 
-$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
 
 if ($conn->connect_error) {
     header('Content-Type: application/json');
