@@ -1,7 +1,7 @@
-const API            = '../srattend/attendance.php';
-const WORK_START_MIN = 8  * 60;
-const WORK_END_MIN   = 17 * 60;
-const GRACE_MIN      = 10;
+const API                   = '../srattend/attendance.php';
+const WORK_START_FIELD_MIN  = 7  * 60 + 10;
+const WORK_START_OFFICE_MIN = 8  * 60 + 10;
+const WORK_END_MIN          = 17 * 60;
 
 let employees         = [];
 let attData           = {};
@@ -47,17 +47,19 @@ function weekLabel() {
     return `${f} – ${l}, ${yr}`;
 }
 
-function calcLate(ti)    { const m = toMin(ti); if (!m) return 0; return Math.max(0, m - (WORK_START_MIN + GRACE_MIN)); }
+function calcLate(ti, dept)  { const m = toMin(ti); if (!m) return 0; const cut = dept === 'Field' ? WORK_START_FIELD_MIN : WORK_START_OFFICE_MIN; return Math.max(0, m - cut); }
 function calcUnder(to)   { const m = toMin(to); if (!m) return 0; return Math.max(0, WORK_END_MIN - m); }
 function calcHrs(ti, to) { const a = toMin(ti), b = toMin(to); if (!a || !b) return 0; return Math.max(0, (b - a) / 60); }
 
 function computeTotals(empId) {
+    const emp   = employees.find(e => e.id == empId);
+    const dept  = emp ? emp.department : 'Office';
     const dates = getWeekDates();
     let late = 0, under = 0, hrs = 0, present = 0, absent = 0;
     dates.forEach(d => {
         const k = fmtDate(d), r = (attData[empId] || {})[k] || {};
         if (r.in || r.out) { present++; } else { absent++; }
-        late  += calcLate(r.in);
+        late  += calcLate(r.in, dept);
         under += calcUnder(r.out);
         hrs   += calcHrs(r.in, r.out);
     });
