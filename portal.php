@@ -130,6 +130,24 @@ if (isset($_GET['logout'])) {
                     </a>
                 </div>
             </div>
+    
+            <div class="system-card">
+                <div class="system-card-header">
+                    <div class="system-icon">
+                        <i class="fa fa-calculator"></i>
+                    </div>
+                    <h3>SRA Payroll</h3>
+                </div>
+                <div class="system-card-body">
+                    <p class="system-description">Automate salaries, deductions, and payslips with ease.</p>
+                    <a href="srapayroll/index"
+                       class="system-btn"
+                       data-navigate="srapayroll/index"
+                       data-room-name="SRA Attendance">
+                        Access Payroll <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
             <?php endif; ?>
 
         </div>
@@ -141,4 +159,5 @@ if (isset($_GET['logout'])) {
 </body>
 
 </html>
+
 
