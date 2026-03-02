@@ -187,9 +187,28 @@ body { overflow-x: hidden; }
         margin: 12px;
         border-radius: 16px !important;
     }
-    .content-top-agile {
-        padding: 20px 20px 0 !important;
+.content-top-agile {
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 28px 20px 12px !important;
     }
+
+    .content-top-agile .logo-img {
+        max-width: 200px !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 auto 10px auto !important;
+        display: block !important;
+    }
+
+    .content-top-agile .subtitle {
+        text-align: center !important;
+        width: 100% !important;
+    }
+}
     .logo-img {
         max-width: 120px !important;
     }
@@ -1488,4 +1507,5 @@ body { overflow-x: hidden; }
         border-left-color: #ff5252 !important;
     }
 }
+
 
