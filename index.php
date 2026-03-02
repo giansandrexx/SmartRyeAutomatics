@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (isset($_SESSION['user_id'])) {
-    header("Location: portal.php");
+    header("Location: portal");
     exit();
 }
 
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['full_name'] = $user['full_name'];
             $_SESSION['role']      = $user['role'];
 
-            header("Location: portal.php");
+            header("Location: portal");
             exit();
         } else {
             $error = "Invalid username or password";
@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php if ($login_success): ?>
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('loadingOverlay').style.display = 'flex';
-            setTimeout(function () { window.location.href = 'portal.php'; }, 1000);
+            setTimeout(function () { window.location.href = 'portal'; }, 1000);
         });
         <?php elseif ($error): ?>
         document.addEventListener('DOMContentLoaded', function () {
