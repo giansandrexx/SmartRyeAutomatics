@@ -36,9 +36,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <div class="user-dropdown-wrap">
                 <button class="user-dropdown-toggle" id="userDropdownBtn"><i class="fas fa-chevron-down"></i></button>
                 <div class="user-dropdown-menu" id="userDropdownMenu">
-                    <a href="../portal.php" class="dropdown-item"><i class="fas fa-arrow-left"></i> Back to Portal</a>
+                    <a href="../portal" class="dropdown-item"><i class="fas fa-arrow-left"></i> Back to Portal</a>
                     <div class="dropdown-divider"></div>
-                    <a href="../sratool/logout.php" class="dropdown-item dropdown-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    <a href="../sratool/logout" class="dropdown-item dropdown-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>
         </div>
@@ -47,8 +47,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 <nav class="nav-bar">
     <ul>
-        <li><a href="index.php" class="<?= $current_page === 'index.php' ? 'active' : '' ?>"><i class="fa fa-address-card"></i> Attendance</a></li>
-        <li><a href="overtime.php" class="<?= $current_page === 'overtime.php' ? 'active' : '' ?>"><i class="fa fa-briefcase"></i> Overtime Monitoring</a></li>
+        <li><a href="index" class="<?= $current_page === 'index.php' ? 'active' : '' ?>"><i class="fa fa-address-card"></i> Attendance</a></li>
+        <li><a href="overtime" class="<?= $current_page === 'overtime.php' ? 'active' : '' ?>"><i class="fa fa-briefcase"></i> Overtime Monitoring</a></li>
     </ul>
 </nav>
 
@@ -201,4 +201,5 @@ $current_page = basename($_SERVER['PHP_SELF']);
         new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 </script>
 </body>
+
 </html>
