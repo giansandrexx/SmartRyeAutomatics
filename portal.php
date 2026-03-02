@@ -54,7 +54,7 @@ if (isset($_GET['logout'])) {
                     </button>
                     <div class="user-dropdown-menu" id="userDropdownMenu">
                         <?php if ($user_role === 'moderator'): ?>
-                        <a href="account_manage.php" class="dropdown-item">
+                        <a href="account_manage" class="dropdown-item">
                             <i class="fas fa-users-cog"></i> Account Management
                         </a>
                         <div class="dropdown-divider"></div>
@@ -85,9 +85,9 @@ if (isset($_GET['logout'])) {
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Tool borrowing, returns, inventory &amp; overdue monitoring.</p>
-                    <a href="sratool/dashboard.php"
+                    <a href="sratool/dashboard"
                        class="system-btn"
-                       data-navigate="sratool/dashboard.php"
+                       data-navigate="sratool/dashboard"
                        data-room-name="Tool Room">
                         Access Tool Room <i class="fas fa-arrow-right"></i>
                     </a>
@@ -104,9 +104,9 @@ if (isset($_GET['logout'])) {
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Appointments, resource planning &amp; team coordination.</p>
-                    <a href="scheduling/scheduling.php"
+                    <a href="scheduling/scheduling"
                        class="system-btn"
-                       data-navigate="srahr/dashboard.php"
+                       data-navigate="srahr/dashboard"
                        data-room-name="SRA Scheduling">
                         Access Scheduling <i class="fas fa-arrow-right"></i>
                     </a>
@@ -122,9 +122,9 @@ if (isset($_GET['logout'])) {
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Attendance monitoring, work hours tracking & leave administration.</p>
-                    <a href="srattend/index.php"
+                    <a href="srattend/index"
                        class="system-btn"
-                       data-navigate="srattend/index.php"
+                       data-navigate="srattend/index"
                        data-room-name="SRA Attendance">
                         Access Attendance <i class="fas fa-arrow-right"></i>
                     </a>
@@ -141,3 +141,4 @@ if (isset($_GET['logout'])) {
 </body>
 
 </html>
+
