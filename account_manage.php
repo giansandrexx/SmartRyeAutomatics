@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-        header("Location: account_manage.php");
+        header("Location: account_manage");
         exit();
     }
 }
@@ -123,11 +123,11 @@ $conn->close();
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="user-dropdown-menu" id="userDropdownMenu">
-                    <a href="portal.php" class="dropdown-item">
+                    <a href="portal" class="dropdown-item">
                         <i class="fas fa-arrow-left"></i> Back to Portal
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a href="sratool/logout.php" class="dropdown-item dropdown-item-danger">
+                    <a href="sratool/logout" class="dropdown-item dropdown-item-danger">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </div>
@@ -353,3 +353,4 @@ $conn->close();
 </body>
 
 </html>
+
