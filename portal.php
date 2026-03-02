@@ -140,9 +140,9 @@ if (isset($_GET['logout'])) {
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Automate salaries, deductions, and payslips with ease.</p>
-                    <a href="srapayroll/index"
+                    <a href="srapayroll/payroll"
                        class="system-btn"
-                       data-navigate="srapayroll/index"
+                       data-navigate="srapayroll/payroll"
                        data-room-name="SRA Attendance">
                         Access Payroll <i class="fas fa-arrow-right"></i>
                     </a>
@@ -159,5 +159,6 @@ if (isset($_GET['logout'])) {
 </body>
 
 </html>
+
 
 
