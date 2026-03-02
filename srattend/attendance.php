@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$conn = new mysqli('localhost', 'root', '', 'srasystem');
+$conn = new mysqli('yamabiko.proxy.rlwy.net', 'root', 'hNbjjSsOIXttYqvrtrLQIIspURSMfeYo', 'railway');
 if ($conn->connect_error) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'DB connection failed: ' . $conn->connect_error]);
@@ -160,4 +160,5 @@ if ($method === 'POST') {
 }
 
 echo json_encode(['success' => false, 'message' => 'Invalid request']);
+
 $conn->close();
