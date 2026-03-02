@@ -171,7 +171,7 @@ function canAccess($key, $perms) {
                     <p class="system-description">Automate salaries, deductions, and payslips with ease.</p>
                     <a href="srapayroll/dashboard"
                        class="system-btn"
-                       data-navigate="srapayroll/payroll"
+                       data-navigate="srapayroll/dashboard"
                        data-room-name="SRA Payroll">
                         Access Payroll <i class="fas fa-arrow-right"></i>
                     </a>
@@ -195,4 +195,5 @@ function canAccess($key, $perms) {
     <script src="js/dropdown.js"></script>
 </body>
 </html>
+
 
