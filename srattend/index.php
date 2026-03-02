@@ -51,12 +51,12 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 <nav class="nav-bar">
     <ul>
         <li>
-            <a href="index" class="<?= ($current_page == 'index') ? 'active' : '' ?>">
+            <a href="index" class="<?= ($current_page == 'index.php') ? 'active' : '' ?>">
                 <i class="fa fa-address-card"></i> Attendance
             </a>
         </li>
         <li>
-            <a href="overtime" class="<?= ($current_page == 'overtime') ? 'active' : '' ?>">
+            <a href="overtime" class="<?= ($current_page == 'overtime.php') ? 'active' : '' ?>">
                 <i class="fa fa-briefcase"></i> Overtime Monitoring
             </a>
         </li>
@@ -142,3 +142,4 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 </body>
 
 </html>
+
