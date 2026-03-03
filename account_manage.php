@@ -131,9 +131,9 @@ $conn->close();
     <link rel="stylesheet" href="sratool/css/consumables.css">
     <link rel="stylesheet" href="sratool/css/dashboard.css">
     <link rel="stylesheet" href="sratool/css/portal.css">
-    <link rel="stylesheet" href="sratool/css/responsive.css">
+    <link rel="stylesheet" href="/smartryesystem/sratool/css/responsive.css">
     <style>
-
+        /* ── System Access Checkboxes ──────────────────────────── */
         .system-access-group {
             background: #f8f9fc;
             border: 1px solid #e2e8f0;
@@ -212,6 +212,7 @@ $conn->close();
             gap: 8px;
         }
 
+        /* ── Permission badges in table ────────────────────────── */
         .perm-badges { display: flex; flex-wrap: wrap; gap: 4px; }
         .perm-badge {
             font-size: 11px;
@@ -638,5 +639,3 @@ window.addEventListener('click', function (e) {
 </script>
 </body>
 </html>
-
-

@@ -1,7 +1,6 @@
 <?php
 require 'config.php';
 
-//Insert User
 $username = 'moderator';
 $password = 'moderator';
 $full_name = 'System Administrator';
@@ -20,5 +19,4 @@ if ($stmt->execute()) {
 
 $stmt->close();
 $conn->close();
-
 ?>
