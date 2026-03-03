@@ -1,4 +1,4 @@
-const OT_API = 'srattend/overtime_api';
+const OT_API = 'overtime_api';
 
 let employees         = [];
 let tripData          = {};
@@ -441,4 +441,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if(close)   close.addEventListener('click', shut);
     if(overlay) overlay.addEventListener('click', shut);
 })();
+
 
