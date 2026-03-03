@@ -17,6 +17,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link rel="stylesheet" href="../sratool/css/dashboard.css">
     <link rel="stylesheet" href="../sratool/css/base.css">
     <link rel="stylesheet" href="../sratool/css/portal.css">
+    <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 
@@ -42,6 +43,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </div>
             </div>
         </div>
+        <button class="mobile-hamburger-btn" id="mobileHamburgerBtn">
+            <span></span><span></span><span></span>
+        </button>
     </div>
 </div>
 
@@ -51,6 +55,31 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <li><a href="overtime" class="<?= $current_page === 'overtime.php' ? 'active' : '' ?>"><i class="fa fa-briefcase"></i> Overtime Monitoring</a></li>
     </ul>
 </nav>
+
+<div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+
+<div class="mobile-drawer" id="mobileDrawer">
+    <button class="mobile-drawer-close" id="mobileDrawerClose"><i class="fas fa-times"></i></button>
+    <div class="mobile-drawer-header">
+        <div class="mobile-drawer-user-icon"><i class="fas fa-user"></i></div>
+        <div>
+            <div class="mobile-drawer-user-name"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Admin'); ?></div>
+            <div class="mobile-drawer-user-role"><?php echo htmlspecialchars($_SESSION['role'] ?? 'admin'); ?></div>
+        </div>
+    </div>
+    <div class="mobile-drawer-links">
+        <a href="index" class="<?= $current_page === 'index.php' ? 'active' : '' ?>">
+            <i class="fa fa-address-card"></i> Attendance
+        </a>
+        <a href="overtime" class="<?= $current_page === 'overtime.php' ? 'active' : '' ?>">
+            <i class="fa fa-briefcase"></i> Overtime Monitoring
+        </a>
+    </div>
+    <div class="mobile-drawer-footer">
+        <a href="../portal"><i class="fas fa-arrow-left"></i> Back to Portal</a>
+        <a href="../sratool/logout" class="mobile-drawer-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
 
 <div class="page-layout">
 
@@ -95,7 +124,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <button class="modal-close" id="tripModalClose"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-
             <div class="form-row">
                 <div class="form-group">
                     <label><i class="fas fa-user" style="margin-right:5px;color:var(--blue-500)"></i>Employee *</label>
@@ -106,12 +134,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <input type="date" class="form-input" id="tDate">
                 </div>
             </div>
-
             <div class="form-group">
                 <label><i class="fas fa-map-marker-alt" style="margin-right:5px;color:#ef4444"></i>Location / Destination *</label>
                 <input type="text" class="form-input" id="tLocation" placeholder="e.g. Batangas Site, SM Sta. Rosa, Tagaytay…">
             </div>
-
             <div class="trip-times-grid">
                 <div class="trip-time-card depart-card">
                     <div class="ttc-icon"><i class="fas fa-building"></i></div>
@@ -137,22 +163,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <input type="time" class="form-input ttc-input" id="tArriveOffice">
                 </div>
             </div>
-
             <div class="form-group" style="margin-top:18px">
                 <label><i class="fas fa-gavel" style="margin-right:5px;color:var(--blue-500)"></i>OT Eligibility</label>
                 <div class="eligibility-toggle" id="eligibilityToggle">
-                    <button type="button" class="elig-btn" data-val="" id="eligPending">
-                        <i class="fas fa-clock"></i> Pending
-                    </button>
-                    <button type="button" class="elig-btn elig-yes" data-val="1" id="eligYes">
-                        <i class="fas fa-check-circle"></i> Eligible
-                    </button>
-                    <button type="button" class="elig-btn elig-no" data-val="0" id="eligNo">
-                        <i class="fas fa-times-circle"></i> Not Eligible
-                    </button>
+                    <button type="button" class="elig-btn" data-val="" id="eligPending"><i class="fas fa-clock"></i> Pending</button>
+                    <button type="button" class="elig-btn elig-yes" data-val="1" id="eligYes"><i class="fas fa-check-circle"></i> Eligible</button>
+                    <button type="button" class="elig-btn elig-no" data-val="0" id="eligNo"><i class="fas fa-times-circle"></i> Not Eligible</button>
                 </div>
             </div>
-
             <div class="ot-hours-panel" id="otHoursPanel">
                 <div class="ot-hours-label"><i class="fas fa-stopwatch"></i> Overtime Duration</div>
                 <div class="ot-hours-inputs">
@@ -167,12 +185,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </div>
                 </div>
             </div>
-
             <div class="form-group" style="margin-top:14px">
                 <label><i class="fas fa-sticky-note" style="margin-right:5px;color:var(--text-muted)"></i>Notes (optional)</label>
                 <input type="text" class="form-input" id="tNotes" placeholder="Additional remarks…">
             </div>
-
             <div class="modal-footer">
                 <button class="btn-cancel" id="tripCancelBtn">Cancel</button>
                 <button class="btn-save" id="tripSaveBtn"><i class="fas fa-save"></i> Save Trip</button>
@@ -196,10 +212,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <div id="sra-toast"><i class="fas fa-check-circle"></i><span id="toast-msg"></span></div>
 
 <script src="js/overtime.js"></script>
-<script>
-    document.getElementById('headerDate').textContent =
-        new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-</script>
-</body>
 
+</body>
 </html>

@@ -1,4 +1,31 @@
 (function () {
+    const btn     = document.getElementById('schedHamburgerBtn');
+    const drawer  = document.getElementById('schedDrawer');
+    const overlay = document.getElementById('schedNavOverlay');
+    const close   = document.getElementById('schedDrawerClose');
+
+    function open() {
+        drawer.classList.add('open');
+        overlay.classList.add('visible');
+        btn.classList.add('is-open');
+    }
+
+    function shut() {
+        drawer.classList.remove('open');
+        overlay.classList.remove('visible');
+        btn.classList.remove('is-open');
+    }
+
+    if (btn)     btn.addEventListener('click', open);
+    if (close)   close.addEventListener('click', shut);
+    if (overlay) overlay.addEventListener('click', shut);
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') shut();
+    });
+})();
+
+(function () {
 
     var userBtn  = document.getElementById('userDropdownBtn');
     var userMenu = document.getElementById('userDropdownMenu');
@@ -312,3 +339,4 @@
     });
 
 })();
+

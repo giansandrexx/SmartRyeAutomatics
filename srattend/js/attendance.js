@@ -1,4 +1,4 @@
-const API                   = '../srattend/attendance.php';
+const API = '../srattend/attendance.php';
 const WORK_START_FIELD_MIN  = 7  * 60 + 10;
 const WORK_START_OFFICE_MIN = 8  * 60 + 10;
 const WORK_END_MIN          = 17 * 60;
@@ -85,17 +85,11 @@ function buildUrl(action, params = {}) {
 async function apiGet(action, params = {}) {
     try {
         const res  = await fetch(buildUrl(action, params));
-        if (res.status === 403) {
-            window.location.href = '../config.php';
-            return null;
-        }
+        if (res.status === 403) { window.location.href = '../config.php'; return null; }
         const text = await res.text();
         try { return JSON.parse(text); }
         catch (e) { console.error('Non-JSON from', action, ':', text); return null; }
-    } catch (e) {
-        console.error('Fetch error on', action, e);
-        return null;
-    }
+    } catch (e) { console.error('Fetch error on', action, e); return null; }
 }
 
 async function apiPost(action, body = {}) {
@@ -105,45 +99,45 @@ async function apiPost(action, body = {}) {
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(body),
         });
-        if (res.status === 403) {
-            window.location.href = '../config.php';
-            return null;
-        }
+        if (res.status === 403) { window.location.href = '../config.php'; return null; }
         const text = await res.text();
         try { return JSON.parse(text); }
         catch (e) { console.error('Non-JSON from', action, ':', text); return null; }
-    } catch (e) {
-        console.error('Post error on', action, e);
-        return null;
-    }
+    } catch (e) { console.error('Post error on', action, e); return null; }
 }
 
 async function loadWeekData() {
     loading(true);
     const ws = fmtDate(currentWeekStart);
-
     try {
         const params = {};
         if (currentDeptFilter) params.dept = currentDeptFilter;
 
-        const [emps, att, ot] = await Promise.all([
+        // Fetch employees and attendance in parallel
+        const [emps, att] = await Promise.all([
             apiGet('employees', params),
             apiGet('week',      { week_start: ws }),
-            apiGet('overtime',  { week_start: ws }),
         ]);
+
+        // Fetch overtime separately from the correct API endpoint
+        let ot = {};
+        try {
+            const otRes = await fetch(`overtime_api.php?action=overtime&week_start=${ws}`);
+            if (otRes.ok) {
+                const otText = await otRes.text();
+                try { ot = JSON.parse(otText); } catch (e) { ot = {}; }
+            }
+        } catch (e) {
+            // Overtime fetch failed — non-fatal, just show zeros
+            ot = {};
+        }
 
         employees = Array.isArray(emps) ? emps : [];
         attData   = (att && typeof att === 'object') ? att : {};
         otData    = (ot  && typeof ot  === 'object') ? ot  : {};
 
-        if (!employees.length && emps !== null) {
-            console.warn('Employees array is empty. Response was:', emps);
-        }
-    } catch (e) {
-        console.error('loadWeekData error:', e);
-        employees = [];
-    }
-
+        if (!employees.length && emps !== null) console.warn('Employees array is empty. Response was:', emps);
+    } catch (e) { console.error('loadWeekData error:', e); employees = []; }
     loading(false);
     renderAll(document.getElementById('searchInput').value);
 }
@@ -152,7 +146,6 @@ async function saveAttendance(empId, date, type, value) {
     if (!attData[empId])       attData[empId]       = {};
     if (!attData[empId][date]) attData[empId][date] = {};
     attData[empId][date][type] = value;
-
     await apiPost('save_attendance', {
         emp_id:   empId,
         att_date: date,
@@ -165,7 +158,6 @@ async function saveAttendance(empId, date, type, value) {
 async function saveOvertime(empId, field, value) {
     if (!otData[empId]) otData[empId] = { m: 0, a: 0 };
     otData[empId][field] = parseFloat(value) || 0;
-
     await apiPost('save_overtime', {
         emp_id:       empId,
         week_start:   fmtDate(currentWeekStart),
@@ -284,26 +276,17 @@ function buildCard(emp) {
 function renderAll(query = '') {
     const q         = query.toLowerCase().trim();
     const container = document.getElementById('empContainer');
-
     if (!employees.length) {
         container.innerHTML = `<div class="no-results"><i class="fas fa-users-slash"></i><p>No employees found. Check your database connection or add employees.</p></div>`;
         return;
     }
-
     const filtered = employees.filter(e => !q || e.name.toLowerCase().includes(q) || (e.department || '').toLowerCase().includes(q));
-
     if (!filtered.length) {
         container.innerHTML = `<div class="no-results"><i class="fas fa-search"></i><p>No employees found for "<strong>${query}</strong>"</p></div>`;
         return;
     }
-
     const groups = {};
-    filtered.forEach(e => {
-        const d = e.department || 'Other';
-        if (!groups[d]) groups[d] = [];
-        groups[d].push(e);
-    });
-
+    filtered.forEach(e => { const d = e.department || 'Other'; if (!groups[d]) groups[d] = []; groups[d].push(e); });
     let html = '';
     for (const dept of ['Field', 'Office', 'Other']) {
         if (!groups[dept] || !groups[dept].length) continue;
@@ -343,9 +326,7 @@ document.addEventListener('change', e => {
         saveAttendance(parseInt(t.dataset.emp), t.dataset.date, t.dataset.t, t.value);
         t.classList.toggle('has-val', !!t.value);
     }
-    if (t.classList.contains('ot-inp')) {
-        saveOvertime(parseInt(t.dataset.emp), t.dataset.ot, t.value);
-    }
+    if (t.classList.contains('ot-inp')) saveOvertime(parseInt(t.dataset.emp), t.dataset.ot, t.value);
 });
 
 function openAdd() {
@@ -372,7 +353,6 @@ async function saveEmployee() {
     const name = document.getElementById('fName').value.trim();
     const dept = document.getElementById('fDept').value;
     if (!name) { document.getElementById('fName').focus(); return; }
-
     if (editTargetId) {
         await apiPost('edit_employee', { id: editTargetId, name, dept });
         showToast('Employee updated!');
@@ -434,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('exportBtn').onclick = () => {
         const ws = fmtDate(currentWeekStart);
-        window.open(`../srattend/export.php?week_start=${ws}&dept=${currentDeptFilter}`, '_blank');
+        window.open(`export.php?week_start=${ws}&dept=${currentDeptFilter}`, '_blank');
     };
 
     document.getElementById('saveEmpBtn').onclick    = saveEmployee;

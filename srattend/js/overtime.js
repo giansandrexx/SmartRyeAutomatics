@@ -1,4 +1,4 @@
-const OT_API = '../srattend/overtime_api.php';
+const OT_API = '../srattend/overtime_api';
 
 let employees         = [];
 let tripData          = {};
@@ -6,7 +6,10 @@ let currentWeekStart  = getMonday(new Date());
 let currentDeptFilter = '';
 let deleteTarget      = null;
 let editTarget        = null;
-let selectedEligibility = ''; // '', '1', '0'
+let selectedEligibility = '';
+
+document.getElementById('headerDate').textContent =
+    new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
 function getMonday(d) {
     const c = new Date(d);
@@ -15,6 +18,7 @@ function getMonday(d) {
     c.setHours(0, 0, 0, 0);
     return c;
 }
+
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 function fmtDate(d)    { return d.toISOString().split('T')[0]; }
 function fmtDisp(d) {
@@ -104,7 +108,7 @@ function getEligibilityInfo(trip) {
 
 function buildTripEntry(empId, date, trip) {
     const { depart_office, arrive_site, depart_site, arrive_office, notes, location } = trip;
-    const eligInfo  = getEligibilityInfo(trip);
+    const eligInfo   = getEligibilityInfo(trip);
     const travelOut  = minToHM(diffMin(depart_office, arrive_site));
     const onSite     = minToHM(diffMin(arrive_site, depart_site));
     const travelBack = minToHM(diffMin(depart_site, arrive_office));
@@ -240,7 +244,6 @@ function setEligibility(val) {
     if (val === '') document.getElementById('eligPending').classList.add('active-pending');
     if (val === '1') document.getElementById('eligYes').classList.add('active-yes');
     if (val === '0') document.getElementById('eligNo').classList.add('active-no');
-
     const panel = document.getElementById('otHoursPanel');
     if (val === '1') { panel.classList.add('show'); }
     else { panel.classList.remove('show'); }
@@ -306,11 +309,9 @@ function openEditTrip(empId, date) {
     document.getElementById('tNotes').value         = trip.notes         || '';
     document.getElementById('tOtHours').value       = trip.ot_hours   || 0;
     document.getElementById('tOtMinutes').value     = trip.ot_minutes || 0;
-
     const eligVal = trip.is_eligible !== null && trip.is_eligible !== undefined && trip.is_eligible !== ''
         ? String(trip.is_eligible) : '';
     setEligibility(eligVal);
-
     document.getElementById('tripModal').classList.add('open');
 }
 
@@ -320,17 +321,17 @@ function closeModal() {
 }
 
 async function saveTrip() {
-    const empId        = parseInt(document.getElementById('tEmp').value);
-    const date         = document.getElementById('tDate').value;
-    const location     = document.getElementById('tLocation').value.trim();
+    const empId         = parseInt(document.getElementById('tEmp').value);
+    const date          = document.getElementById('tDate').value;
+    const location      = document.getElementById('tLocation').value.trim();
     const depart_office = document.getElementById('tDepartOffice').value || null;
-    const arrive_site  = document.getElementById('tArriveSite').value   || null;
-    const depart_site  = document.getElementById('tDepartSite').value   || null;
+    const arrive_site   = document.getElementById('tArriveSite').value   || null;
+    const depart_site   = document.getElementById('tDepartSite').value   || null;
     const arrive_office = document.getElementById('tArriveOffice').value || null;
-    const notes        = document.getElementById('tNotes').value.trim();
-    const is_eligible  = selectedEligibility;
-    const ot_hours     = selectedEligibility === '1' ? parseInt(document.getElementById('tOtHours').value)   || 0 : 0;
-    const ot_minutes   = selectedEligibility === '1' ? parseInt(document.getElementById('tOtMinutes').value) || 0 : 0;
+    const notes         = document.getElementById('tNotes').value.trim();
+    const is_eligible   = selectedEligibility;
+    const ot_hours      = selectedEligibility === '1' ? parseInt(document.getElementById('tOtHours').value)   || 0 : 0;
+    const ot_minutes    = selectedEligibility === '1' ? parseInt(document.getElementById('tOtMinutes').value) || 0 : 0;
 
     if (!empId || !date) { alert('Please select an employee and date.'); return; }
 
@@ -402,8 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    document.getElementById('addTripBtn').onclick  = openAddTrip;
-    document.getElementById('tripSaveBtn').onclick  = saveTrip;
+    document.getElementById('addTripBtn').onclick    = openAddTrip;
+    document.getElementById('tripSaveBtn').onclick   = saveTrip;
     document.getElementById('tripCancelBtn').onclick = closeModal;
     document.getElementById('tripModalClose').onclick = closeModal;
     document.getElementById('tripModal').onclick = e => { if (e.target === document.getElementById('tripModal')) closeModal(); };
@@ -428,3 +429,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', () => { dropMenu.classList.remove('open'); dropBtn.classList.remove('open'); });
     }
 });
+
+(function(){
+    const btn     = document.getElementById('mobileHamburgerBtn');
+    const drawer  = document.getElementById('mobileDrawer');
+    const overlay = document.getElementById('mobileNavOverlay');
+    const close   = document.getElementById('mobileDrawerClose');
+    function open(){ drawer.classList.add('open'); overlay.classList.add('visible'); btn.classList.add('is-open'); }
+    function shut(){ drawer.classList.remove('open'); overlay.classList.remove('visible'); btn.classList.remove('is-open'); }
+    if(btn)     btn.addEventListener('click', open);
+    if(close)   close.addEventListener('click', shut);
+    if(overlay) overlay.addEventListener('click', shut);
+})();

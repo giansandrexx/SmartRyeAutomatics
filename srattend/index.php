@@ -15,6 +15,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
     <link rel="stylesheet" href="../sratool/css/dashboard.css">
     <link rel="stylesheet" href="../sratool/css/base.css">
     <link rel="stylesheet" href="../sratool/css/portal.css">
+    <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 
@@ -40,6 +41,9 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
                 </div>
             </div>
         </div>
+        <button class="mobile-hamburger-btn" id="mobileHamburgerBtn">
+            <span></span><span></span><span></span>
+        </button>
     </div>
 </div>
 
@@ -60,11 +64,46 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
                 <i class="fa fa-briefcase"></i> Overtime Monitoring
             </a>
         </li>
-        
     </ul>
 </nav>
 
+<div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+
+<div class="mobile-drawer" id="mobileDrawer">
+    <button class="mobile-drawer-close" id="mobileDrawerClose"><i class="fas fa-times"></i></button>
+    <div class="mobile-drawer-header">
+        <div class="mobile-drawer-user-icon"><i class="fas fa-user"></i></div>
+        <div>
+            <div class="mobile-drawer-user-name"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Admin'); ?></div>
+            <div class="mobile-drawer-user-role"><?php echo htmlspecialchars($_SESSION['role'] ?? 'admin'); ?></div>
+        </div>
+    </div>
+    <div class="mobile-drawer-links">
+        <a href="index" class="<?= ($current_page == 'index.php') ? 'active' : '' ?>">
+            <i class="fa fa-address-card"></i> Attendance
+        </a>
+        <a href="overtime" class="<?= ($current_page == 'overtime.php') ? 'active' : '' ?>">
+            <i class="fa fa-briefcase"></i> Overtime Monitoring
+        </a>
+    </div>
+    <div class="mobile-drawer-footer">
+        <a href="../portal"><i class="fas fa-arrow-left"></i> Back to Portal</a>
+        <a href="../sratool/logout" class="mobile-drawer-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
 <div class="page-layout">
+
+    <div class="att-page-header">
+        <div>
+            <h2 class="att-page-title"><i class="fas fa-address-card"></i> Attendance Monitoring</h2>
+            <p class="att-page-sub">Track employee daily time-in &amp; time-out records</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export</button>
+            <button class="btn-add" id="addEmpBtn"><i class="fas fa-user-plus"></i> Add Employee</button>
+        </div>
+    </div>
 
     <div class="top-bar">
         <div class="week-nav">
@@ -82,8 +121,6 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" class="search-input" id="searchInput" placeholder="Search by name…">
             </div>
-            <button class="btn-add" id="addEmpBtn"><i class="fas fa-user-plus"></i> Add Employee</button>
-            <button class="btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export</button>
         </div>
     </div>
 
@@ -139,7 +176,18 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
     document.getElementById('headerDate').textContent =
         new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 </script>
+<script>
+(function(){
+    const btn     = document.getElementById('mobileHamburgerBtn');
+    const drawer  = document.getElementById('mobileDrawer');
+    const overlay = document.getElementById('mobileNavOverlay');
+    const close   = document.getElementById('mobileDrawerClose');
+    function open(){ drawer.classList.add('open'); overlay.classList.add('visible'); btn.classList.add('is-open'); }
+    function shut(){ drawer.classList.remove('open'); overlay.classList.remove('visible'); btn.classList.remove('is-open'); }
+    if(btn)     btn.addEventListener('click', open);
+    if(close)   close.addEventListener('click', shut);
+    if(overlay) overlay.addEventListener('click', shut);
+})();
+</script>
 </body>
-
 </html>
-

@@ -103,6 +103,4 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 
 
 
-
 <script src="../js/dropdown.js"></script>
-
