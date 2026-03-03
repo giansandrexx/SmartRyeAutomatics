@@ -27,7 +27,7 @@ function getInitials($name) {
     <title>SRA Payroll – Employees</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/srapayroll/css/employees.css">
+    <link rel="stylesheet" href="css/employees.css">
 </head>
 <body>
 
@@ -363,4 +363,5 @@ function getInitials($name) {
 </script>
 </body>
 </html>
+
 
