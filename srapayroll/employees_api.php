@@ -9,12 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$conn = new mysqli('localhost', 'root', '', 'srasystem');
-if ($conn->connect_error) {
-    echo json_encode(['success' => false, 'message' => 'DB connection failed']);
-    exit();
-}
-$conn->set_charset("utf8mb4");
+require_once "../config.php";
 
 $action = $_GET['action'] ?? '';
 $body   = json_decode(file_get_contents('php://input'), true);
@@ -76,4 +71,5 @@ if ($action === 'delete_employee') {
 }
 
 echo json_encode(['success' => false, 'message' => 'Invalid action']);
+
 $conn->close();
