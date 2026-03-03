@@ -1,4 +1,4 @@
-const API = '../srattend/attendance.php';
+const API = 'srattend/attendance.php';
 const WORK_START_FIELD_MIN  = 7  * 60 + 10;
 const WORK_START_OFFICE_MIN = 8  * 60 + 10;
 const WORK_END_MIN          = 17 * 60;
@@ -433,4 +433,5 @@ document.addEventListener('DOMContentLoaded', () => {
         dropBtn.onclick = e => { e.stopPropagation(); const o = dropMenu.classList.toggle('open'); dropBtn.classList.toggle('open', o); };
         document.addEventListener('click', () => { dropMenu.classList.remove('open'); dropBtn.classList.remove('open'); });
     }
+
 });
