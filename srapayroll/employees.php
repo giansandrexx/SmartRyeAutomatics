@@ -3,9 +3,7 @@ session_start();
 date_default_timezone_set('Asia/Manila');
 if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 
-$conn = new mysqli('localhost', 'root', '', 'srasystem');
-if ($conn->connect_error) { die("DB Error: " . $conn->connect_error); }
-$conn->set_charset("utf8mb4");
+require_once "../config.php";
 
 $employees = [];
 $r = $conn->query("SELECT id, name, position, department, employment_type, daily_rate, phone, hire_date FROM employees WHERE is_active = 1 ORDER BY name");
@@ -498,4 +496,5 @@ function getInitials($name) {
     });
 </script>
 </body>
+
 </html>
