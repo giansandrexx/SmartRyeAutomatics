@@ -9,13 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$conn = new mysqli('localhost', 'root', '', 'srasystem');
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'DB connection failed: ' . $conn->connect_error]);
-    exit();
-}
-$conn->set_charset("utf8mb4");
+require_once __DIR__ . '/../config.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -160,4 +154,5 @@ if ($method === 'POST') {
 }
 
 echo json_encode(['success' => false, 'message' => 'Invalid request']);
+
 $conn->close();
