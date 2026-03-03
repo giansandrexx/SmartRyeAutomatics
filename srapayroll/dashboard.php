@@ -3,9 +3,7 @@ session_start();
 date_default_timezone_set('Asia/Manila');
 if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 
-$conn = new mysqli('localhost', 'root', '', 'srasystem');
-if ($conn->connect_error) { die("DB Error: " . $conn->connect_error); }
-$conn->set_charset("utf8mb4");
+require_once "../config.php";
 
 $total_employees  = 0;
 $active_employees = 0;
@@ -239,4 +237,5 @@ $conn->close();
     });
 </script>
 </body>
+
 </html>
