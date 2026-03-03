@@ -328,7 +328,6 @@ $conn->close();
                 <div class="form-group" id="passwordGroup">
                     <label>Password *</label>
                     <input type="password" name="password" id="password">
-                    <small style="color:#666;">Leave blank to keep current password when editing</small>
                 </div>
 
                 <div class="form-group">
@@ -539,4 +538,5 @@ window.addEventListener('click', function (e) {
 </body>
 
 </html>
+
 
