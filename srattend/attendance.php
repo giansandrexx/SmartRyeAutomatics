@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-require_once __DIR__ . '/../config.php';
+require_once "../config.php";
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -19,10 +19,10 @@ if ($method === 'GET') {
     if ($action === 'employees') {
         $dept = $_GET['dept'] ?? '';
         if ($dept) {
-            $stmt = $conn->prepare("SELECT id, name, department, color FROM employees WHERE is_active=1 AND department=? ORDER BY name");
+            $stmt = $conn->prepare("SELECT id, employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date FROM employees WHERE is_active=1 AND department=? ORDER BY name");
             $stmt->bind_param("s", $dept);
         } else {
-            $stmt = $conn->prepare("SELECT id, name, department, color FROM employees WHERE is_active=1 ORDER BY department, name");
+            $stmt = $conn->prepare("SELECT id, employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date FROM employees WHERE is_active=1 ORDER BY department, name");
         }
         $stmt->execute();
         $result = $stmt->get_result();
@@ -115,12 +115,31 @@ if ($method === 'POST') {
     }
 
     if ($action === 'add_employee') {
-        $name  = trim($body['name']  ?? '');
-        $dept  = $body['dept']  ?? 'Field';
-        $color = $body['color'] ?? '135deg,#1245a8,#42a5f5';
-        if (!$name) { echo json_encode(['success' => false, 'message' => 'Name required']); exit; }
-        $stmt = $conn->prepare("INSERT INTO employees (name, department, color) VALUES (?, ?, ?)");
-        $stmt->bind_param("sss", $name, $dept, $color);
+        $employee_id     = trim($body['employee_id']    ?? '');
+        $name            = trim($body['name']           ?? '');
+        $dept            = $body['dept']                ?? '';
+        $color           = $body['color']               ?? '135deg,#1245a8,#42a5f5';
+        $phone           = trim($body['phone']          ?? '');
+        $position        = trim($body['position']       ?? '');
+        $employment_type = $body['employment_type']     ?? 'Full Time';
+        $daily_rate      = (float)($body['daily_rate']  ?? 0);
+        $hire_date       = $body['hire_date']           ?: null;
+
+        if (!$employee_id) { echo json_encode(['success' => false, 'message' => 'Employee ID required']); exit; }
+        if (!$name)        { echo json_encode(['success' => false, 'message' => 'Name required']); exit; }
+        if (!$dept)        { echo json_encode(['success' => false, 'message' => 'Department required']); exit; }
+        if (!$position)    { echo json_encode(['success' => false, 'message' => 'Position required']); exit; }
+        if ($daily_rate <= 0) { echo json_encode(['success' => false, 'message' => 'Daily rate required']); exit; }
+
+        $chk = $conn->prepare("SELECT id FROM employees WHERE employee_id = ?");
+        $chk->bind_param("s", $employee_id);
+        $chk->execute();
+        $chk->store_result();
+        if ($chk->num_rows > 0) { echo json_encode(['success' => false, 'message' => 'Employee ID already exists']); exit; }
+        $chk->close();
+
+        $stmt = $conn->prepare("INSERT INTO employees (employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssssssds", $employee_id, $name, $dept, $color, $phone, $position, $employment_type, $daily_rate, $hire_date);
         $stmt->execute();
         $new_id = $conn->insert_id;
         $stmt->close();
@@ -129,12 +148,29 @@ if ($method === 'POST') {
     }
 
     if ($action === 'edit_employee') {
-        $id   = (int)($body['id']   ?? 0);
-        $name = trim($body['name'] ?? '');
-        $dept = $body['dept'] ?? 'Field';
-        if (!$id || !$name) { echo json_encode(['success' => false, 'message' => 'Missing fields']); exit; }
-        $stmt = $conn->prepare("UPDATE employees SET name = ?, department = ? WHERE id = ?");
-        $stmt->bind_param("ssi", $name, $dept, $id);
+        $id              = (int)($body['id']             ?? 0);
+        $employee_id     = trim($body['employee_id']     ?? '');
+        $name            = trim($body['name']            ?? '');
+        $dept            = $body['dept']                 ?? '';
+        $phone           = trim($body['phone']           ?? '');
+        $position        = trim($body['position']        ?? '');
+        $employment_type = $body['employment_type']      ?? 'Full Time';
+        $daily_rate      = (float)($body['daily_rate']   ?? 0);
+        $hire_date       = $body['hire_date']            ?: null;
+
+        if (!$id || !$employee_id || !$name || !$dept || !$position) {
+            echo json_encode(['success' => false, 'message' => 'Missing required fields']); exit;
+        }
+
+        $chk = $conn->prepare("SELECT id FROM employees WHERE employee_id = ? AND id != ?");
+        $chk->bind_param("si", $employee_id, $id);
+        $chk->execute();
+        $chk->store_result();
+        if ($chk->num_rows > 0) { echo json_encode(['success' => false, 'message' => 'Employee ID already in use']); exit; }
+        $chk->close();
+
+        $stmt = $conn->prepare("UPDATE employees SET employee_id=?, name=?, department=?, phone=?, position=?, employment_type=?, daily_rate=?, hire_date=? WHERE id=?");
+        $stmt->bind_param("ssssssdsi", $employee_id, $name, $dept, $phone, $position, $employment_type, $daily_rate, $hire_date, $id);
         $stmt->execute();
         $stmt->close();
         echo json_encode(['success' => true]);
@@ -154,5 +190,4 @@ if ($method === 'POST') {
 }
 
 echo json_encode(['success' => false, 'message' => 'Invalid request']);
-
 $conn->close();

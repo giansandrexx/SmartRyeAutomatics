@@ -12,6 +12,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/attendance.css">
+    <link rel="stylesheet" href="css/modal.css">
     <link rel="stylesheet" href="../sratool/css/dashboard.css">
     <link rel="stylesheet" href="../sratool/css/base.css">
     <link rel="stylesheet" href="../sratool/css/portal.css">
@@ -134,20 +135,52 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 <div class="modal-overlay" id="empModal">
     <div class="modal-box">
         <div class="modal-head">
-            <h3 id="modalTitle"><i class="fas fa-user-plus" style="margin-right:8px"></i>Add Employee</h3>
+            <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Add Employee</h3>
             <button class="modal-close" id="modalCloseBtn"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <div class="form-group">
-                <label>Full Name *</label>
-                <input type="text" class="form-input" id="fName" placeholder="e.g. Juan Dela Cruz">
-            </div>
-            <div class="form-group">
-                <label>Workplace</label>
-                <select class="form-input" id="fDept">
-                    <option value="Field">Field</option>
-                    <option value="Office">Office</option>
-                </select>
+            <div class="modal-grid">
+                <div class="form-group full">
+                    <label>Employee ID *</label>
+                    <input type="text" class="form-input" id="fEmpId" placeholder="e.g. EMP-0001">
+                </div>
+                <div class="form-group full">
+                    <label>Full Name *</label>
+                    <input type="text" class="form-input" id="fName" placeholder="e.g. Juan Dela Cruz">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" class="form-input" id="fPhone" placeholder="+63 9XX XXX XXXX">
+                </div>
+                <div class="form-group">
+                    <label>Department *</label>
+                    <select class="form-input" id="fDept">
+                        <option value="">— Select —</option>
+                        <option value="Field">Field</option>
+                        <option value="Office">Office</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Position *</label>
+                    <input type="text" class="form-input" id="fPosition" placeholder="e.g. Engineer">
+                </div>
+                <div class="form-group">
+                    <label>Employment Type</label>
+                    <select class="form-input" id="fEmpType">
+                        <option value="Full Time">Full Time</option>
+                        <option value="Part Time">Part Time</option>
+                        <option value="Contractual">Contractual</option>
+                        <option value="Probationary">Probationary</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Daily Rate (₱) *</label>
+                    <input type="number" class="form-input" id="fDailyRate" placeholder="0.00" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Hire Date</label>
+                    <input type="date" class="form-input" id="fHireDate">
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-cancel" id="cancelEmpBtn">Cancel</button>
@@ -172,22 +205,5 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 <div id="sra-toast"><i class="fas fa-check-circle"></i><span id="toast-msg"></span></div>
 
 <script src="js/attendance.js"></script>
-<script>
-    document.getElementById('headerDate').textContent =
-        new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-</script>
-<script>
-(function(){
-    const btn     = document.getElementById('mobileHamburgerBtn');
-    const drawer  = document.getElementById('mobileDrawer');
-    const overlay = document.getElementById('mobileNavOverlay');
-    const close   = document.getElementById('mobileDrawerClose');
-    function open(){ drawer.classList.add('open'); overlay.classList.add('visible'); btn.classList.add('is-open'); }
-    function shut(){ drawer.classList.remove('open'); overlay.classList.remove('visible'); btn.classList.remove('is-open'); }
-    if(btn)     btn.addEventListener('click', open);
-    if(close)   close.addEventListener('click', shut);
-    if(overlay) overlay.addEventListener('click', shut);
-})();
-</script>
 </body>
 </html>

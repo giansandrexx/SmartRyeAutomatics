@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-require_once __DIR__ . '/../config.php';
+require_once "../config.php";
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -19,10 +19,10 @@ if ($method === 'GET') {
     if ($action === 'employees') {
         $dept = $_GET['dept'] ?? '';
         if ($dept) {
-            $stmt = $conn->prepare("SELECT id, name, department, color FROM employees WHERE is_active=1 AND department=? ORDER BY name");
+            $stmt = $conn->prepare("SELECT id, employee_id, name, department, position, color FROM employees WHERE is_active=1 AND department=? ORDER BY name");
             $stmt->bind_param("s", $dept);
         } else {
-            $stmt = $conn->prepare("SELECT id, name, department, color FROM employees WHERE is_active=1 ORDER BY department, name");
+            $stmt = $conn->prepare("SELECT id, employee_id, name, department, position, color FROM employees WHERE is_active=1 ORDER BY department, name");
         }
         $stmt->execute();
         $rows = [];
@@ -51,15 +51,15 @@ if ($method === 'GET') {
         $res  = $stmt->get_result();
         while ($r = $res->fetch_assoc()) {
             $data[$r['emp_id']][$r['trip_date']] = [
-                'location'     => $r['location'],
-                'depart_office'=> $r['depart_office'],
-                'arrive_site'  => $r['arrive_site'],
-                'depart_site'  => $r['depart_site'],
-                'arrive_office'=> $r['arrive_office'],
-                'is_eligible'  => $r['is_eligible'],
-                'ot_hours'     => (int)$r['ot_hours'],
-                'ot_minutes'   => (int)$r['ot_minutes'],
-                'notes'        => $r['notes'],
+                'location'      => $r['location'],
+                'depart_office' => $r['depart_office'],
+                'arrive_site'   => $r['arrive_site'],
+                'depart_site'   => $r['depart_site'],
+                'arrive_office' => $r['arrive_office'],
+                'is_eligible'   => $r['is_eligible'],
+                'ot_hours'      => (int)$r['ot_hours'],
+                'ot_minutes'    => (int)$r['ot_minutes'],
+                'notes'         => $r['notes'],
             ];
         }
         $stmt->close();
@@ -127,5 +127,4 @@ if ($method === 'POST') {
 }
 
 echo json_encode(['success' => false, 'message' => 'Invalid request']);
-
 $conn->close();
