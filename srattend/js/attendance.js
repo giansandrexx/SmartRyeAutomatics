@@ -1,4 +1,4 @@
-const API = 'attendance.php';
+const API = '../srattend/attendance.php';
 const WORK_START_FIELD_MIN  = 7  * 60 + 10;
 const WORK_START_OFFICE_MIN = 8  * 60 + 10;
 const WORK_END_MIN          = 17 * 60;
@@ -48,8 +48,8 @@ function weekLabel() {
 }
 
 function calcLate(ti, dept)  { const m = toMin(ti); if (!m) return 0; const cut = dept === 'Field' ? WORK_START_FIELD_MIN : WORK_START_OFFICE_MIN; return Math.max(0, m - cut); }
-function calcUnder(to)   { const m = toMin(to); if (!m) return 0; return Math.max(0, WORK_END_MIN - m); }
-function calcHrs(ti, to) { const a = toMin(ti), b = toMin(to); if (!a || !b) return 0; return Math.max(0, (b - a) / 60); }
+function calcUnder(to)       { const m = toMin(to); if (!m) return 0; return Math.max(0, WORK_END_MIN - m); }
+function calcHrs(ti, to)     { const a = toMin(ti), b = toMin(to); if (!a || !b) return 0; return Math.max(0, (b - a) / 60); }
 
 function computeTotals(empId) {
     const emp   = employees.find(e => e.id == empId);
@@ -113,13 +113,11 @@ async function loadWeekData() {
         const params = {};
         if (currentDeptFilter) params.dept = currentDeptFilter;
 
-        // Fetch employees and attendance in parallel
         const [emps, att] = await Promise.all([
             apiGet('employees', params),
             apiGet('week',      { week_start: ws }),
         ]);
 
-        // Fetch overtime separately from the correct API endpoint
         let ot = {};
         try {
             const otRes = await fetch(`overtime_api.php?action=overtime&week_start=${ws}`);
@@ -127,10 +125,7 @@ async function loadWeekData() {
                 const otText = await otRes.text();
                 try { ot = JSON.parse(otText); } catch (e) { ot = {}; }
             }
-        } catch (e) {
-            // Overtime fetch failed — non-fatal, just show zeros
-            ot = {};
-        }
+        } catch (e) { ot = {}; }
 
         employees = Array.isArray(emps) ? emps : [];
         attData   = (att && typeof att === 'object') ? att : {};
@@ -194,6 +189,8 @@ function buildCard(emp) {
         ? '<i class="fas fa-hard-hat" style="font-size:9px;margin-right:3px"></i>'
         : '<i class="fas fa-building"  style="font-size:9px;margin-right:3px"></i>';
 
+    const empIdDisplay = emp.employee_id ? emp.employee_id : '#' + String(emp.id).padStart(3, '0');
+
     const strip = `
         <div class="tstrip-cell highlight-late">
             <div class="tstrip-label">Late</div>
@@ -240,9 +237,9 @@ function buildCard(emp) {
             <div class="emp-meta">
                 <div class="emp-name-row">
                     <span class="emp-name-text">${emp.name}</span>
-                    <span class="emp-id-badge">#${String(emp.id).padStart(3, '0')}</span>
+                    <span class="emp-id-badge">${empIdDisplay}</span>
                 </div>
-                <div class="emp-dept-text">${deptIcon}${emp.department}</div>
+                <div class="emp-dept-text">${deptIcon}${emp.department}${emp.position ? ' · ' + emp.position : ''}</div>
             </div>
             <div class="emp-header-stats" id="hstats-${emp.id}">
                 <div class="hstat late"><div class="hstat-val" id="hs-late-${emp.id}">${minToHM(t.late)}</div><div class="hstat-label">Late</div></div>
@@ -280,7 +277,13 @@ function renderAll(query = '') {
         container.innerHTML = `<div class="no-results"><i class="fas fa-users-slash"></i><p>No employees found. Check your database connection or add employees.</p></div>`;
         return;
     }
-    const filtered = employees.filter(e => !q || e.name.toLowerCase().includes(q) || (e.department || '').toLowerCase().includes(q));
+    const filtered = employees.filter(e =>
+        !q ||
+        e.name.toLowerCase().includes(q) ||
+        (e.department || '').toLowerCase().includes(q) ||
+        (e.employee_id || '').toLowerCase().includes(q) ||
+        (e.position || '').toLowerCase().includes(q)
+    );
     if (!filtered.length) {
         container.innerHTML = `<div class="no-results"><i class="fas fa-search"></i><p>No employees found for "<strong>${query}</strong>"</p></div>`;
         return;
@@ -329,38 +332,68 @@ document.addEventListener('change', e => {
     if (t.classList.contains('ot-inp')) saveOvertime(parseInt(t.dataset.emp), t.dataset.ot, t.value);
 });
 
+function clearModal() {
+    document.getElementById('fEmpId').value    = '';
+    document.getElementById('fName').value     = '';
+    document.getElementById('fPhone').value    = '';
+    document.getElementById('fDept').value     = '';
+    document.getElementById('fPosition').value = '';
+    document.getElementById('fEmpType').value  = 'Full Time';
+    document.getElementById('fDailyRate').value = '';
+    document.getElementById('fHireDate').value  = '';
+}
+
 function openAdd() {
     editTargetId = null;
-    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus" style="margin-right:8px"></i>Add Employee';
-    document.getElementById('fName').value = '';
-    document.getElementById('fDept').value = 'Field';
+    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Add Employee';
+    clearModal();
     document.getElementById('empModal').classList.add('open');
-    setTimeout(() => document.getElementById('fName').focus(), 100);
+    setTimeout(() => document.getElementById('fEmpId').focus(), 100);
 }
 
 function openEdit(id, e) {
     e.stopPropagation();
     editTargetId = id;
     const emp = employees.find(x => x.id == id);
-    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-pen" style="margin-right:8px"></i>Edit Employee';
-    document.getElementById('fName').value = emp.name;
-    document.getElementById('fDept').value = emp.department;
+    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-pen"></i> Edit Employee';
+    document.getElementById('fEmpId').value     = emp.employee_id     || '';
+    document.getElementById('fName').value      = emp.name            || '';
+    document.getElementById('fPhone').value     = emp.phone           || '';
+    document.getElementById('fDept').value      = emp.department      || '';
+    document.getElementById('fPosition').value  = emp.position        || '';
+    document.getElementById('fEmpType').value   = emp.employment_type || 'Full Time';
+    document.getElementById('fDailyRate').value = emp.daily_rate      || '';
+    document.getElementById('fHireDate').value  = emp.hire_date       || '';
     document.getElementById('empModal').classList.add('open');
-    setTimeout(() => document.getElementById('fName').focus(), 100);
+    setTimeout(() => document.getElementById('fEmpId').focus(), 100);
 }
 
 async function saveEmployee() {
-    const name = document.getElementById('fName').value.trim();
-    const dept = document.getElementById('fDept').value;
-    if (!name) { document.getElementById('fName').focus(); return; }
+    const employee_id     = document.getElementById('fEmpId').value.trim();
+    const name            = document.getElementById('fName').value.trim();
+    const phone           = document.getElementById('fPhone').value.trim();
+    const dept            = document.getElementById('fDept').value;
+    const position        = document.getElementById('fPosition').value.trim();
+    const employment_type = document.getElementById('fEmpType').value;
+    const daily_rate      = parseFloat(document.getElementById('fDailyRate').value) || 0;
+    const hire_date       = document.getElementById('fHireDate').value;
+
+    if (!employee_id) { document.getElementById('fEmpId').focus();    showToast('Employee ID is required.');  return; }
+    if (!name)        { document.getElementById('fName').focus();      showToast('Full name is required.');    return; }
+    if (!dept)        { document.getElementById('fDept').focus();      showToast('Department is required.');   return; }
+    if (!position)    { document.getElementById('fPosition').focus();  showToast('Position is required.');     return; }
+    if (daily_rate <= 0) { document.getElementById('fDailyRate').focus(); showToast('Daily rate is required.'); return; }
+
+    let res;
     if (editTargetId) {
-        await apiPost('edit_employee', { id: editTargetId, name, dept });
-        showToast('Employee updated!');
+        res = await apiPost('edit_employee', { id: editTargetId, employee_id, name, phone, dept, position, employment_type, daily_rate, hire_date });
     } else {
         const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        await apiPost('add_employee', { name, dept, color });
-        showToast('Employee added!');
+        res = await apiPost('add_employee', { employee_id, name, phone, dept, position, employment_type, daily_rate, hire_date, color });
     }
+
+    if (res && !res.success) { showToast(res.message || 'Error saving employee.'); return; }
+    showToast(editTargetId ? 'Employee updated!' : 'Employee added!');
     document.getElementById('empModal').classList.remove('open');
     await loadWeekData();
 }
@@ -417,11 +450,16 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(`export.php?week_start=${ws}&dept=${currentDeptFilter}`, '_blank');
     };
 
+    document.getElementById('headerDate').textContent =
+        new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
     document.getElementById('saveEmpBtn').onclick    = saveEmployee;
     document.getElementById('cancelEmpBtn').onclick  = () => document.getElementById('empModal').classList.remove('open');
     document.getElementById('modalCloseBtn').onclick = () => document.getElementById('empModal').classList.remove('open');
     document.getElementById('empModal').onclick      = e => { if (e.target === document.getElementById('empModal')) document.getElementById('empModal').classList.remove('open'); };
-    document.getElementById('fName').addEventListener('keydown', e => { if (e.key === 'Enter') saveEmployee(); });
+    document.getElementById('fEmpId').addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('fName').focus(); });
+    document.getElementById('fName').addEventListener('keydown',     e => { if (e.key === 'Enter') document.getElementById('fPhone').focus(); });
+    document.getElementById('fPosition').addEventListener('keydown', e => { if (e.key === 'Enter') saveEmployee(); });
 
     document.getElementById('confirmOverlay').onclick   = e => { if (e.target === document.getElementById('confirmOverlay')) document.getElementById('confirmOverlay').classList.remove('open'); };
     document.getElementById('confirmDeleteBtn').onclick = doDelete;
@@ -433,6 +471,16 @@ document.addEventListener('DOMContentLoaded', () => {
         dropBtn.onclick = e => { e.stopPropagation(); const o = dropMenu.classList.toggle('open'); dropBtn.classList.toggle('open', o); };
         document.addEventListener('click', () => { dropMenu.classList.remove('open'); dropBtn.classList.remove('open'); });
     }
-
 });
 
+(function(){
+    const btn     = document.getElementById('mobileHamburgerBtn');
+    const drawer  = document.getElementById('mobileDrawer');
+    const overlay = document.getElementById('mobileNavOverlay');
+    const close   = document.getElementById('mobileDrawerClose');
+    function open(){ drawer.classList.add('open'); overlay.classList.add('visible'); btn.classList.add('is-open'); }
+    function shut(){ drawer.classList.remove('open'); overlay.classList.remove('visible'); btn.classList.remove('is-open'); }
+    if(btn)     btn.addEventListener('click', open);
+    if(close)   close.addEventListener('click', shut);
+    if(overlay) overlay.addEventListener('click', shut);
+})();

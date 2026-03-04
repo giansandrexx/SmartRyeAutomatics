@@ -1,4 +1,4 @@
-const OT_API = 'overtime_api';
+const OT_API = '../srattend/overtime_api';
 
 let employees         = [];
 let tripData          = {};
@@ -171,6 +171,9 @@ function buildEmpCard(emp) {
         ? '<i class="fas fa-hard-hat" style="font-size:9px;margin-right:3px"></i>'
         : '<i class="fas fa-building" style="font-size:9px;margin-right:3px"></i>';
 
+    const empIdDisplay  = emp.employee_id ? emp.employee_id : '#' + String(emp.id).padStart(3, '0');
+    const positionPart  = emp.position ? ` · ${emp.position}` : '';
+
     let tripsHtml = '';
     const sortedDates = Object.keys(empTrips).sort();
     sortedDates.forEach(date => { tripsHtml += buildTripEntry(emp.id, date, empTrips[date]); });
@@ -181,8 +184,11 @@ function buildEmpCard(emp) {
         <div class="ot-emp-header" onclick="toggleOtCard(${emp.id}, event)">
             <div class="ot-emp-avatar" style="background:linear-gradient(${emp.color})">${initials(emp.name)}</div>
             <div class="ot-emp-meta">
-                <div class="ot-emp-name">${emp.name}</div>
-                <div class="ot-emp-dept">${deptIcon}${emp.department}</div>
+                <div class="ot-emp-name">
+                    ${emp.name}
+                    <span style="font-size:11px;font-weight:400;opacity:.65;margin-left:6px;">${empIdDisplay}</span>
+                </div>
+                <div class="ot-emp-dept">${deptIcon}${emp.department}${positionPart}</div>
             </div>
             <div class="ot-emp-summary">
                 <span class="ot-badge ${tripCount>0?'has-trips':''}">${tripCount > 0 ? `${tripCount} trip${tripCount>1?'s':''}` : 'No trips'}</span>
@@ -210,7 +216,12 @@ function renderAll(query='') {
         container.innerHTML = `<div class="no-results"><i class="fas fa-users-slash"></i><p>No employees found.</p></div>`;
         return;
     }
-    const filtered = employees.filter(e => !q || e.name.toLowerCase().includes(q));
+    const filtered = employees.filter(e =>
+        !q ||
+        e.name.toLowerCase().includes(q) ||
+        (e.employee_id || '').toLowerCase().includes(q) ||
+        (e.position || '').toLowerCase().includes(q)
+    );
     if (!filtered.length) {
         container.innerHTML = `<div class="no-results"><i class="fas fa-search"></i><p>No employees match "<strong>${query}</strong>"</p></div>`;
         return;
@@ -255,7 +266,9 @@ function populateEmpSelect(preselect=null) {
     employees.forEach(e => {
         const opt = document.createElement('option');
         opt.value = e.id;
-        opt.textContent = `${e.name} (${e.department})`;
+        const idPart  = e.employee_id ? e.employee_id : '#' + String(e.id).padStart(3, '0');
+        const posPart = e.position ? ` - ${e.position}` : '';
+        opt.textContent = `${e.name} (${idPart})${posPart} · ${e.department}`;
         if (preselect && e.id == preselect) opt.selected = true;
         sel.appendChild(opt);
     });
@@ -403,9 +416,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    document.getElementById('addTripBtn').onclick    = openAddTrip;
-    document.getElementById('tripSaveBtn').onclick   = saveTrip;
-    document.getElementById('tripCancelBtn').onclick = closeModal;
+    document.getElementById('addTripBtn').onclick     = openAddTrip;
+    document.getElementById('tripSaveBtn').onclick    = saveTrip;
+    document.getElementById('tripCancelBtn').onclick  = closeModal;
     document.getElementById('tripModalClose').onclick = closeModal;
     document.getElementById('tripModal').onclick = e => { if (e.target === document.getElementById('tripModal')) closeModal(); };
 
@@ -441,5 +454,3 @@ document.addEventListener('DOMContentLoaded', () => {
     if(close)   close.addEventListener('click', shut);
     if(overlay) overlay.addEventListener('click', shut);
 })();
-
-
