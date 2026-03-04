@@ -361,7 +361,6 @@ function openEdit(id, e) {
     document.getElementById('fDept').value      = emp.department      || '';
     document.getElementById('fPosition').value  = emp.position        || '';
     document.getElementById('fEmpType').value   = emp.employment_type || 'Full Time';
-    document.getElementById('fDailyRate').value = emp.daily_rate      || '';
     document.getElementById('fHireDate').value  = emp.hire_date       || '';
     document.getElementById('empModal').classList.add('open');
     setTimeout(() => document.getElementById('fEmpId').focus(), 100);
@@ -374,14 +373,12 @@ async function saveEmployee() {
     const dept            = document.getElementById('fDept').value;
     const position        = document.getElementById('fPosition').value.trim();
     const employment_type = document.getElementById('fEmpType').value;
-    const daily_rate      = parseFloat(document.getElementById('fDailyRate').value) || 0;
     const hire_date       = document.getElementById('fHireDate').value;
 
     if (!employee_id) { document.getElementById('fEmpId').focus();    showToast('Employee ID is required.');  return; }
     if (!name)        { document.getElementById('fName').focus();      showToast('Full name is required.');    return; }
     if (!dept)        { document.getElementById('fDept').focus();      showToast('Department is required.');   return; }
     if (!position)    { document.getElementById('fPosition').focus();  showToast('Position is required.');     return; }
-    if (daily_rate <= 0) { document.getElementById('fDailyRate').focus(); showToast('Daily rate is required.'); return; }
 
     let res;
     if (editTargetId) {
@@ -484,3 +481,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if(overlay) overlay.addEventListener('click', shut);
 
 })();
+
