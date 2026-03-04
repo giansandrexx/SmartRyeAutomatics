@@ -6,7 +6,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 require_once "../config.php";
 
 $employees = [];
-$r = $conn->query("SELECT id, name, position, department, employment_type, daily_rate, phone, hire_date FROM employees WHERE is_active = 1 ORDER BY name");
+$r = $conn->query("SELECT id, employee_id, name, position, department, employment_type, daily_rate, phone, hire_date FROM employees WHERE is_active = 1 ORDER BY name");
 if ($r) { while ($row = $r->fetch_assoc()) { $employees[] = $row; } }
 
 $conn->close();
@@ -27,50 +27,12 @@ function getInitials($name) {
     <title>SRA Payroll – Employees</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/employees.css">
+    <link rel="stylesheet" href="../srapayroll/css/employees.css">
+    <link rel="stylesheet" href="../srapayroll/css/emp-modal.css">
 </head>
 <body>
 
-<div class="top-header">
-    <div class="logo-section">
-        <img src="https://smartrye.com.ph/ams/public/backend/images/logo-sra.png" alt="Logo" class="logo-img">
-        <h1 class="system-title">SRA Payroll</h1>
-    </div>
-    <div class="header-right">
-        <div class="current-date" id="headerDate"></div>
-        <div class="user-info">
-            <div class="user-icon"><i class="fas fa-user"></i></div>
-            <div>
-                <div class="user-name"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Admin'); ?></div>
-                <div class="user-role"><?php echo htmlspecialchars($_SESSION['role'] ?? 'admin'); ?></div>
-            </div>
-            <div class="user-dropdown-wrap">
-                <button class="user-dropdown-toggle" id="userDropdownBtn"><i class="fas fa-chevron-down"></i></button>
-                <div class="user-dropdown-menu" id="userDropdownMenu">
-                    <a href="../portal" class="dropdown-item"><i class="fas fa-arrow-left"></i> Back to Portal</a>
-                    <div class="dropdown-divider"></div>
-                    <a href="../sratool/logout" class="dropdown-item dropdown-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php $current_page = basename($_SERVER['PHP_SELF']); ?>
-<nav class="nav-bar">
-    <ul>
-        <li>
-            <a href="dashboard" class="<?= ($current_page == 'dashboard.php') ? 'active' : '' ?>">
-                <i class="fas fa-chart-pie"></i> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="employees" class="<?= ($current_page == 'employees.php') ? 'active' : '' ?>">
-                <i class="fas fa-users"></i> Employees
-            </a>
-        </li>
-    </ul>
-</nav>
+<?php include 'nav.php'; ?>
 
 <div class="page-layout">
 
@@ -92,18 +54,24 @@ function getInitials($name) {
 
     <div class="emp-grid" id="empGrid">
         <?php foreach ($employees as $emp):
-            $full     = htmlspecialchars($emp['name']);
-            $initials = getInitials($emp['name']);
-            $pos      = htmlspecialchars($emp['position'] ?? '—');
-            $dept     = htmlspecialchars($emp['department'] ?? '—');
-            $rate     = $emp['daily_rate'] > 0 ? '&#8369;' . number_format($emp['daily_rate'],0) . '/day' : '&#8369;0/day';
+            $full       = htmlspecialchars($emp['name']);
+            $initials   = getInitials($emp['name']);
+            $pos        = htmlspecialchars($emp['position'] ?? '—');
+            $dept       = htmlspecialchars($emp['department'] ?? '—');
+            $empId      = htmlspecialchars($emp['employee_id'] ?? '');
+            $rate       = $emp['daily_rate'] > 0 ? '&#8369;' . number_format($emp['daily_rate'],0) . '/day' : '&#8369;0/day';
         ?>
         <div class="emp-card"
              data-name="<?= strtolower($emp['name']) ?>"
              data-dept="<?= htmlspecialchars($emp['department'] ?? '') ?>">
             <div class="emp-avatar"><?= $initials ?></div>
             <div class="emp-info">
-                <div class="emp-name"><?= $full ?></div>
+                <div class="emp-name-row">
+                    <span class="emp-name"><?= $full ?></span>
+                    <?php if ($empId): ?>
+                    <span class="emp-id-chip"><?= $empId ?></span>
+                    <?php endif; ?>
+                </div>
                 <div class="emp-position"><?= $pos ?></div>
                 <div class="emp-meta">
                     <span class="emp-dept"><?= $dept ?></span>
@@ -114,6 +82,7 @@ function getInitials($name) {
             <div class="emp-actions">
                 <button class="act-btn edit" title="Edit"
                     data-id="<?= $emp['id'] ?>"
+                    data-empid="<?= $empId ?>"
                     data-name="<?= htmlspecialchars($emp['name']) ?>"
                     data-phone="<?= htmlspecialchars($emp['phone'] ?? '') ?>"
                     data-dept="<?= htmlspecialchars($emp['department'] ?? '') ?>"
@@ -146,13 +115,15 @@ function getInitials($name) {
         </div>
         <div class="modal-body">
             <input type="hidden" id="fId">
-            <div class="form-row">
-                <div class="form-group" style="grid-column:1/-1">
+            <div class="modal-grid">
+                <div class="form-group full">
+                    <label>Employee ID <span>*</span></label>
+                    <input type="text" class="form-input" id="fEmpId" placeholder="e.g. EMP-0001">
+                </div>
+                <div class="form-group full">
                     <label>Full Name <span>*</span></label>
                     <input type="text" class="form-input" id="fName" placeholder="e.g. Juan Dela Cruz">
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label>Phone</label>
                     <input type="text" class="form-input" id="fPhone" placeholder="+63 9XX XXX XXXX">
@@ -165,8 +136,6 @@ function getInitials($name) {
                         <option value="Office">Office</option>
                     </select>
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label>Position <span>*</span></label>
                     <input type="text" class="form-input" id="fPosition" placeholder="e.g. Engineer">
@@ -177,10 +146,9 @@ function getInitials($name) {
                         <option value="Full Time">Full Time</option>
                         <option value="Part Time">Part Time</option>
                         <option value="Contractual">Contractual</option>
+                        <option value="Probationary">Probationary</option>
                     </select>
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label>Daily Rate (&#8369;) <span>*</span></label>
                     <input type="number" class="form-input" id="fRate" placeholder="0.00" min="0" step="0.01">
@@ -229,7 +197,7 @@ function getInitials($name) {
     const grid       = document.getElementById('empGrid');
 
     function showToast(msg, isError = false) {
-        const t = document.getElementById('sra-toast');
+        const t  = document.getElementById('sra-toast');
         const ic = t.querySelector('i');
         document.getElementById('toastMsg').textContent = msg;
         t.className = isError ? 'error' : '';
@@ -265,22 +233,40 @@ function getInitials($name) {
         document.getElementById('annualHint').textContent = rate > 0 ? `Annual ≈ ₱${annual.toLocaleString()}` : '';
     });
 
+    function clearModal() {
+        document.getElementById('fId').value       = '';
+        document.getElementById('fEmpId').value    = '';
+        document.getElementById('fName').value     = '';
+        document.getElementById('fPhone').value    = '';
+        document.getElementById('fDept').value     = '';
+        document.getElementById('fPosition').value = '';
+        document.getElementById('fEmpType').value  = 'Full Time';
+        document.getElementById('fRate').value     = '';
+        document.getElementById('fHire').value     = '';
+        document.getElementById('annualHint').textContent = '';
+    }
+
     function openModal(mode, data = {}) {
-        document.getElementById('fId').value       = data.id || '';
-        document.getElementById('fName').value     = data.name || '';
-        document.getElementById('fPhone').value    = data.phone || '';
-        document.getElementById('fDept').value     = data.dept || '';
+        clearModal();
+        document.getElementById('fId').value       = data.id       || '';
+        document.getElementById('fEmpId').value    = data.empid    || '';
+        document.getElementById('fName').value     = data.name     || '';
+        document.getElementById('fPhone').value    = data.phone    || '';
+        document.getElementById('fDept').value     = data.dept     || '';
         document.getElementById('fPosition').value = data.position || '';
-        document.getElementById('fEmpType').value  = data.emptype || 'Full Time';
-        document.getElementById('fRate').value     = data.rate || '';
-        document.getElementById('fHire').value     = data.hire || '';
-        document.getElementById('annualHint').textContent = data.rate > 0 ? `Annual ≈ ₱${(parseFloat(data.rate) * 313).toLocaleString()}` : '';
+        document.getElementById('fEmpType').value  = data.emptype  || 'Full Time';
+        document.getElementById('fRate').value     = data.rate     || '';
+        document.getElementById('fHire').value     = data.hire     || '';
+        if (data.rate > 0) {
+            document.getElementById('annualHint').textContent = `Annual ≈ ₱${(parseFloat(data.rate) * 313).toLocaleString()}`;
+        }
         const isEdit = mode === 'edit';
         document.getElementById('modalTitle').innerHTML = isEdit
             ? '<i class="fas fa-user-edit"></i> Edit Employee'
             : '<i class="fas fa-user-plus"></i> Add Employee';
         document.getElementById('saveBtnText').textContent = isEdit ? 'Update' : 'Save';
         empModal.classList.add('open');
+        setTimeout(() => document.getElementById('fEmpId').focus(), 100);
     }
 
     function closeModal() { empModal.classList.remove('open'); }
@@ -296,6 +282,7 @@ function getInitials($name) {
         if (editBtn) {
             openModal('edit', {
                 id:       editBtn.dataset.id,
+                empid:    editBtn.dataset.empid,
                 name:     editBtn.dataset.name,
                 phone:    editBtn.dataset.phone,
                 dept:     editBtn.dataset.dept,
@@ -318,6 +305,7 @@ function getInitials($name) {
 
     document.getElementById('saveEmpBtn').addEventListener('click', async () => {
         const id       = document.getElementById('fId').value;
+        const employee_id = document.getElementById('fEmpId').value.trim();
         const name     = document.getElementById('fName').value.trim();
         const phone    = document.getElementById('fPhone').value.trim();
         const dept     = document.getElementById('fDept').value;
@@ -326,13 +314,16 @@ function getInitials($name) {
         const rate     = document.getElementById('fRate').value;
         const hire     = document.getElementById('fHire').value;
 
-        if (!name || !dept || !position) { showToast('Please fill in all required fields.', true); return; }
+        if (!employee_id) { showToast('Employee ID is required.', true); document.getElementById('fEmpId').focus(); return; }
+        if (!name)        { showToast('Full name is required.', true);   document.getElementById('fName').focus();  return; }
+        if (!dept)        { showToast('Department is required.', true);  document.getElementById('fDept').focus();  return; }
+        if (!position)    { showToast('Position is required.', true);    document.getElementById('fPosition').focus(); return; }
 
         const action = id ? 'edit_employee' : 'add_employee';
         const res = await fetch(`employees_api.php?action=${action}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, name, phone, department: dept, position, employment_type: emptype, daily_rate: rate, hire_date: hire })
+            body: JSON.stringify({ id, employee_id, name, phone, department: dept, position, employment_type: emptype, daily_rate: rate, hire_date: hire })
         });
         const data = await res.json();
         if (data.success) {
@@ -360,8 +351,9 @@ function getInitials($name) {
             showToast(data.message || 'Something went wrong.', true);
         }
     });
+
+    document.getElementById('fEmpId').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('fName').focus(); });
+    document.getElementById('fName').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('fPhone').focus(); });
 </script>
 </body>
 </html>
-
-

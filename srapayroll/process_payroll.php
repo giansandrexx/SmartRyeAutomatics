@@ -1,0 +1,380 @@
+<?php
+session_start();
+date_default_timezone_set('Asia/Manila');
+if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
+
+require_once "../config.php";
+
+$message = '';
+$message_type = '';
+
+$employees = [];
+$r = $conn->query("SELECT id, name, department, daily_rate FROM employees WHERE is_active = 1 ORDER BY name ASC");
+if ($r) { while ($row = $r->fetch_assoc()) { $employees[] = $row; } }
+
+$cash_advances = [];
+$r = $conn->query("SHOW TABLES LIKE 'cash_advances'");
+if ($r && $r->num_rows > 0) {
+    $r = $conn->query("SELECT employee_id, SUM(amount) as total FROM cash_advances WHERE status = 'pending' GROUP BY employee_id");
+    if ($r) { while ($row = $r->fetch_assoc()) { $cash_advances[$row['employee_id']] = $row['total']; } }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $employee_id  = (int)$_POST['employee_id'];
+    $date_from    = $conn->real_escape_string($_POST['date_from']);
+    $date_to      = $conn->real_escape_string($_POST['date_to']);
+    $days_worked  = (float)$_POST['days_worked'];
+    $absent_days  = (float)($_POST['absent_days'] ?? 0);
+    $late_minutes = (float)($_POST['late_minutes'] ?? 0);
+    $ot_hours     = (float)($_POST['ot_hours'] ?? 0);
+    $other_deduct = (float)($_POST['other_deductions'] ?? 0);
+    $sss          = (float)($_POST['sss'] ?? 200);
+    $philhealth   = (float)($_POST['philhealth'] ?? 250);
+    $pagibig      = (float)($_POST['pagibig'] ?? 100);
+    $remarks      = $conn->real_escape_string($_POST['remarks'] ?? '');
+    $apply_gov    = isset($_POST['apply_gov']) ? 1 : 0;
+
+    $emp_r = $conn->query("SELECT daily_rate FROM employees WHERE id = $employee_id");
+    if ($emp_r && $emp_r->num_rows > 0) {
+        $emp_data      = $emp_r->fetch_assoc();
+        $daily_rate    = (float)$emp_data['daily_rate'];
+        $basic_pay     = $daily_rate * $days_worked;
+        $ot_pay        = $ot_hours * 150;
+        $absent_deduct = $daily_rate * $absent_days;
+        $late_deduct   = $late_minutes * 2.5;
+        $gross_pay     = $basic_pay + $ot_pay - $absent_deduct - $late_deduct;
+
+        $gov_sss = $apply_gov ? $sss : 0;
+        $gov_ph  = $apply_gov ? $philhealth : 0;
+        $gov_pi  = $apply_gov ? $pagibig : 0;
+        $ca      = isset($cash_advances[$employee_id]) ? (float)$cash_advances[$employee_id] : 0;
+
+        $total_deductions = $gov_sss + $gov_ph + $gov_pi + $ca + $other_deduct;
+        $net_pay = $gross_pay - $total_deductions;
+
+        $conn->query("CREATE TABLE IF NOT EXISTS payroll_entries (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            employee_id INT NOT NULL,
+            date_from DATE NOT NULL,
+            date_to DATE NOT NULL,
+            days_worked DECIMAL(5,2) NOT NULL DEFAULT 0,
+            absent_days DECIMAL(5,2) NOT NULL DEFAULT 0,
+            late_minutes DECIMAL(8,2) NOT NULL DEFAULT 0,
+            ot_hours DECIMAL(5,2) NOT NULL DEFAULT 0,
+            daily_rate DECIMAL(12,2) NOT NULL DEFAULT 0,
+            basic_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
+            ot_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
+            absent_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
+            late_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
+            gross_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
+            sss DECIMAL(12,2) NOT NULL DEFAULT 0,
+            philhealth DECIMAL(12,2) NOT NULL DEFAULT 0,
+            pagibig DECIMAL(12,2) NOT NULL DEFAULT 0,
+            cash_advance DECIMAL(12,2) NOT NULL DEFAULT 0,
+            other_deductions DECIMAL(12,2) NOT NULL DEFAULT 0,
+            total_deductions DECIMAL(12,2) NOT NULL DEFAULT 0,
+            net_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
+            remarks TEXT,
+            created_by INT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )");
+
+        $stmt = $conn->prepare("INSERT INTO payroll_entries (employee_id, date_from, date_to, days_worked, absent_days, late_minutes, ot_hours, daily_rate, basic_pay, ot_pay, absent_deduction, late_deduction, gross_pay, sss, philhealth, pagibig, cash_advance, other_deductions, total_deductions, net_pay, remarks, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        $stmt->bind_param("issdddddddddddddddddsi",
+            $employee_id, $date_from, $date_to,
+            $days_worked, $absent_days, $late_minutes, $ot_hours,
+            $daily_rate, $basic_pay, $ot_pay, $absent_deduct, $late_deduct, $gross_pay,
+            $gov_sss, $gov_ph, $gov_pi, $ca, $other_deduct, $total_deductions, $net_pay,
+            $remarks, $_SESSION['user_id']
+        );
+
+        if ($stmt->execute()) {
+            $message = "Payroll saved! Net Pay: ₱" . number_format($net_pay, 2);
+            $message_type = 'success';
+        } else {
+            $message = "Error: " . $conn->error;
+            $message_type = 'error';
+        }
+        $stmt->close();
+    } else {
+        $message = "Employee not found.";
+        $message_type = 'error';
+    }
+}
+
+$conn->close();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRA Payroll – Process Payroll</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../srapayroll/css/process.css">
+</head>
+<body>
+
+<?php include 'nav.php'; ?>
+
+<div class="page-layout">
+    <div class="page-header">
+        <h2>Process Payroll</h2>
+        <p>Compute and save payroll entries for individual employees.</p>
+    </div>
+
+    <?php if ($message): ?>
+    <div class="alert alert-<?= $message_type ?>">
+        <i class="fas fa-<?= $message_type==='success'?'check-circle':'exclamation-circle' ?>"></i>
+        <?= htmlspecialchars($message) ?>
+    </div>
+    <?php endif; ?>
+
+    <div class="payroll-grid">
+        <div class="form-card">
+            <div class="card-head"><i class="fas fa-money-check-alt"></i><h3>Payroll Entry Form</h3></div>
+            <div class="card-body">
+                <form method="POST">
+
+                    <div class="section-title"><i class="fas fa-user"></i> Employee</div>
+                    <div class="form-row single">
+                        <div class="form-group">
+                            <label>Employee <span class="req">*</span></label>
+                            <select class="fc" name="employee_id" id="empSelect" required>
+                                <option value="">— Select Employee —</option>
+                                <?php foreach ($employees as $emp): ?>
+                                <option value="<?= $emp['id'] ?>"
+                                    data-rate="<?= (float)$emp['daily_rate'] ?>"
+                                    data-dept="<?= htmlspecialchars($emp['department'] ?? '') ?>"
+                                    data-name="<?= htmlspecialchars($emp['name']) ?>">
+                                    <?= htmlspecialchars($emp['name']) ?> — ₱<?= number_format($emp['daily_rate'],0) ?>/day
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="emp-banner" id="empBanner">
+                        <div class="emp-avatar"><i class="fas fa-id-badge"></i></div>
+                        <div>
+                            <div class="emp-name" id="bannerName">—</div>
+                            <div class="emp-detail" id="bannerDept">—</div>
+                        </div>
+                        <div class="emp-rate-wrap">
+                            <div class="rate-lbl">Daily Rate</div>
+                            <div class="rate-val" id="bannerRate">₱0</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title"><i class="fas fa-calendar"></i> Pay Period</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date From <span class="req">*</span></label>
+                            <input type="date" class="fc" name="date_from" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date To <span class="req">*</span></label>
+                            <input type="date" class="fc" name="date_to" required>
+                        </div>
+                    </div>
+
+                    <div class="section-title"><i class="fas fa-clipboard-check"></i> Attendance</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Days Worked <span class="req">*</span><span class="hint" id="daysHint">Max 15/period</span></label>
+                            <input type="number" class="fc" name="days_worked" id="daysWorked" min="0" max="15" step="0.5" placeholder="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Absent Days</label>
+                            <input type="number" class="fc" name="absent_days" id="absentDays" min="0" step="0.5" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div class="section-title"><i class="fas fa-sliders-h"></i> Adjustments</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Late <span class="hint">minutes · ₱2.5/min</span></label>
+                            <input type="number" class="fc" name="late_minutes" id="lateMinutes" min="0" step="1" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Overtime <span class="hint">hours · ₱150/hr</span></label>
+                            <input type="number" class="fc" name="ot_hours" id="otHours" min="0" step="0.5" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-row single">
+                        <div class="form-group">
+                            <label>Other Deductions (₱)</label>
+                            <input type="number" class="fc" name="other_deductions" id="otherDeductions" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="section-title"><i class="fas fa-landmark"></i> Government Contributions</div>
+                    <div class="gov-row">
+                        <span class="gov-lbl">Apply government deductions?</span>
+                        <label class="toggle"><input type="checkbox" name="apply_gov" id="applyGov"><span class="slider"></span></label>
+                    </div>
+                    <div class="gov-fields" id="govFields">
+                        <div class="gf-group"><label>SSS</label><input type="number" class="fc" name="sss" id="sssInput" value="200" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>PhilHealth</label><input type="number" class="fc" name="philhealth" id="philhealthInput" value="250" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>Pag-IBIG</label><input type="number" class="fc" name="pagibig" id="pagibigInput" value="100" min="0" step="0.01"></div>
+                    </div>
+
+                    <div class="section-title"><i class="fas fa-comment-alt"></i> Remarks</div>
+                    <div class="form-row single">
+                        <div class="form-group">
+                            <label>Remarks</label>
+                            <textarea class="fc" name="remarks" rows="2" placeholder="Optional notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Process &amp; Save Payroll</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="compute-card">
+            <div class="c-head"><h3><i class="fas fa-calculator"></i> Live Computation</h3></div>
+            <div>
+                <div class="c-section">
+                    <div class="c-stitle">Earnings</div>
+                    <div class="c-row"><span class="l">Daily Rate</span><span class="v" id="cRate">₱0.00</span></div>
+                    <div class="c-row"><span class="l" id="cBasicLbl">Basic Pay (0 days)</span><span class="v pos" id="cBasic">₱0.00</span></div>
+                    <div class="c-row"><span class="l">Overtime Pay</span><span class="v pos" id="cOt">₱0.00</span></div>
+                </div>
+                <div class="c-section">
+                    <div class="c-stitle">Attendance Deductions</div>
+                    <div class="c-row"><span class="l">Absent</span><span class="v neg" id="cAbsent">– ₱0.00</span></div>
+                    <div class="c-row"><span class="l">Late</span><span class="v neg" id="cLate">– ₱0.00</span></div>
+                </div>
+                <div class="gross-row"><span class="l">GROSS PAY</span><span class="v" id="cGross">₱0.00</span></div>
+                <div class="c-section">
+                    <div class="c-stitle">Other Deductions</div>
+                    <div id="govNoneTxt" class="gov-none-txt">Government deductions not applied</div>
+                    <div id="govApplied" style="display:none;">
+                        <div class="c-row"><span class="l">SSS</span><span class="v neg" id="cSss">₱0.00</span></div>
+                        <div class="c-row"><span class="l">PhilHealth</span><span class="v neg" id="cPh">₱0.00</span></div>
+                        <div class="c-row"><span class="l">Pag-IBIG</span><span class="v neg" id="cPi">₱0.00</span></div>
+                    </div>
+                    <div class="c-row"><span class="l">Cash Advance</span><span class="v neg" id="cCa">₱0.00</span></div>
+                    <div class="c-row"><span class="l">Other</span><span class="v neg" id="cOther">₱0.00</span></div>
+                    <div class="c-row" style="border-top:1px solid var(--border-light);margin-top:6px;padding-top:8px;">
+                        <span class="l" style="font-weight:700;color:var(--text-primary);">Total Deductions</span>
+                        <span class="v neg" style="font-size:14px;" id="cTotal">₱0.00</span>
+                    </div>
+                </div>
+                <div class="net-section">
+                    <div class="net-lbl">NET PAY</div>
+                    <div class="net-val"><span class="cur">₱</span><span id="cNet">0.00</span></div>
+                    <div class="net-sub" id="cSub">Select an employee to begin</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const EMP = <?php echo json_encode(array_column($employees, null, 'id')); ?>;
+const CA  = <?php echo json_encode($cash_advances); ?>;
+
+document.getElementById('headerDate').textContent =
+    new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+const ddBtn = document.getElementById('userDropdownBtn');
+const ddMenu = document.getElementById('userDropdownMenu');
+ddBtn.addEventListener('click', () => { ddBtn.classList.toggle('open'); ddMenu.classList.toggle('open'); });
+document.addEventListener('click', e => {
+    if (!ddBtn.contains(e.target) && !ddMenu.contains(e.target)) { ddBtn.classList.remove('open'); ddMenu.classList.remove('open'); }
+});
+
+const p = n => '₱' + parseFloat(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function compute() {
+    const id       = document.getElementById('empSelect').value;
+    const emp      = id ? EMP[id] : null;
+    const isField  = emp ? (emp.department||'').toLowerCase().trim() === 'field' : false;
+    const maxDays  = isField ? 6 : 15;
+    const rate     = emp ? parseFloat(emp.daily_rate) : 0;
+
+    document.getElementById('daysWorked').max = maxDays;
+    document.getElementById('daysHint').textContent = isField ? 'Max 6/week' : 'Max 15/period';
+
+    const days   = parseFloat(document.getElementById('daysWorked').value)     || 0;
+    const absent = parseFloat(document.getElementById('absentDays').value)      || 0;
+    const late   = parseFloat(document.getElementById('lateMinutes').value)     || 0;
+    const ot     = parseFloat(document.getElementById('otHours').value)         || 0;
+    const other  = parseFloat(document.getElementById('otherDeductions').value) || 0;
+    const gov    = document.getElementById('applyGov').checked;
+    const sss    = gov ? (parseFloat(document.getElementById('sssInput').value)        || 0) : 0;
+    const ph     = gov ? (parseFloat(document.getElementById('philhealthInput').value)  || 0) : 0;
+    const pi     = gov ? (parseFloat(document.getElementById('pagibigInput').value)     || 0) : 0;
+    const ca     = id  ? (parseFloat(CA[id]) || 0) : 0;
+
+    const basic   = rate * days;
+    const otPay   = ot * 150;
+    const absDed  = rate * absent;
+    const lateDed = late * 2.5;
+    const gross   = basic + otPay - absDed - lateDed;
+    const totDed  = sss + ph + pi + ca + other;
+    const net     = gross - totDed;
+
+    document.getElementById('cRate').textContent     = p(rate);
+    document.getElementById('cBasicLbl').textContent = 'Basic Pay (' + days + ' days)';
+    document.getElementById('cBasic').textContent    = p(basic);
+    document.getElementById('cOt').textContent       = p(otPay);
+    document.getElementById('cAbsent').textContent   = '– ' + p(absDed);
+    document.getElementById('cLate').textContent     = '– ' + p(lateDed);
+    document.getElementById('cGross').textContent    = p(gross);
+    document.getElementById('govNoneTxt').style.display  = gov ? 'none' : 'block';
+    document.getElementById('govApplied').style.display  = gov ? 'block' : 'none';
+    document.getElementById('cSss').textContent     = p(sss);
+    document.getElementById('cPh').textContent      = p(ph);
+    document.getElementById('cPi').textContent      = p(pi);
+    document.getElementById('cCa').textContent      = p(ca);
+    document.getElementById('cOther').textContent   = p(other);
+    document.getElementById('cTotal').textContent   = p(totDed);
+    document.getElementById('cNet').textContent     = parseFloat(net||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    const sub = document.getElementById('cSub');
+    if (!emp) {
+        sub.textContent = 'Select an employee to begin';
+        sub.style.color = 'var(--text-muted)';
+    } else if (net < 0) {
+        sub.textContent = '⚠ Net pay is negative — check deductions';
+        sub.style.color = 'var(--red-500)';
+    } else {
+        sub.textContent = emp.name + ' · ' + days + ' days · ' + (isField ? 'Weekly' : 'Semi-Monthly');
+        sub.style.color = 'var(--text-muted)';
+    }
+}
+
+document.getElementById('empSelect').addEventListener('change', function() {
+    const emp    = this.value ? EMP[this.value] : null;
+    const banner = document.getElementById('empBanner');
+    if (emp) {
+        const isField = (emp.department||'').toLowerCase().trim() === 'field';
+        document.getElementById('bannerName').textContent = emp.name;
+        document.getElementById('bannerDept').textContent = (emp.department||'No dept') + (isField ? ' · Weekly' : ' · Semi-Monthly');
+        document.getElementById('bannerRate').textContent = p(emp.daily_rate) + '/day';
+        banner.classList.add('show');
+    } else {
+        banner.classList.remove('show');
+    }
+    compute();
+});
+
+['daysWorked','absentDays','lateMinutes','otHours','otherDeductions','sssInput','philhealthInput','pagibigInput'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) { el.addEventListener('input', compute); el.addEventListener('change', compute); }
+});
+
+document.getElementById('applyGov').addEventListener('change', function() {
+    document.getElementById('govFields').style.opacity       = this.checked ? '1' : '0.4';
+    document.getElementById('govFields').style.pointerEvents = this.checked ? 'auto' : 'none';
+    compute();
+});
+
+compute();
+</script>
+</body>
+</html>
