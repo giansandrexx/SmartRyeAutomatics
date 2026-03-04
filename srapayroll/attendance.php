@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
     <title>Attendance - SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/attendance.css">
+    <link rel="stylesheet" href="css/attendance.css">
 </head>
 <body>
 
@@ -105,3 +105,4 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 </body>
 
 </html>
+
