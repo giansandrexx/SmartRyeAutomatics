@@ -174,10 +174,6 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Daily Rate (₱) *</label>
-                    <input type="number" class="form-input" id="fDailyRate" placeholder="0.00" min="0" step="0.01">
-                </div>
-                <div class="form-group">
                     <label>Hire Date</label>
                     <input type="date" class="form-input" id="fHireDate">
                 </div>
@@ -206,4 +202,5 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 
 <script src="js/attendance.js"></script>
 </body>
+
 </html>
