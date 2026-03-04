@@ -38,7 +38,7 @@ $conn->close();
     <title>SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
 
@@ -183,3 +183,4 @@ $conn->close();
 </body>
 
 </html>
+
