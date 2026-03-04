@@ -10,6 +10,7 @@ let currentWeekStart  = getMonday(new Date());
 let deleteTargetId    = null;
 let editTargetId      = null;
 let currentDeptFilter = '';
+let weekNavigating    = false;
 
 const COLORS = [
     '135deg,#1245a8,#42a5f5','135deg,#2e7d32,#66bb6a','135deg,#6a1b9a,#ab47bc',
@@ -19,15 +20,29 @@ const COLORS = [
 ];
 
 function getMonday(d) {
-    const c = new Date(d);
+    const c   = new Date(d);
     const day = c.getDay();
-    const diff = c.getDate() - day + (day === 0 ? -6 : 1);
-    c.setDate(diff);
+    const diff = (day === 0) ? -6 : 1 - day;
+    c.setDate(c.getDate() + diff);
     c.setHours(0, 0, 0, 0);
     return c;
 }
-function addDays(d, n)  { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
-function fmtDate(d)     { return d.toISOString().split('T')[0]; }
+
+function addDays(d, n) {
+    const r = new Date(d);
+    r.setDate(r.getDate() + n);
+    return r;
+}
+
+// FIXED: use local year/month/date instead of toISOString() which shifts to UTC
+// toISOString() on a Philippine machine returns the previous day (UTC-8hrs)
+function fmtDate(d) {
+    const y  = d.getFullYear();
+    const m  = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+}
+
 function fmtDisp(d)     { return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }); }
 function toMin(t)       { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function minToHM(m) {
@@ -42,9 +57,7 @@ function weekLabel() {
     const first = d[0], last = d[d.length - 1];
     const opt   = { month: 'short', day: 'numeric' };
     const yr    = last.getFullYear();
-    const f     = first.toLocaleDateString('en-PH', opt);
-    const l     = last.toLocaleDateString('en-PH', opt);
-    return `${f} – ${l}, ${yr}`;
+    return `${first.toLocaleDateString('en-PH', opt)} – ${last.toLocaleDateString('en-PH', opt)}, ${yr}`;
 }
 
 function calcLate(ti, dept)  { const m = toMin(ti); if (!m) return 0; const cut = dept === 'Field' ? WORK_START_FIELD_MIN : WORK_START_OFFICE_MIN; return Math.max(0, m - cut); }
@@ -78,7 +91,9 @@ function loading(show) {
 function buildUrl(action, params = {}) {
     const url = new URL(API, window.location.href);
     url.searchParams.set('action', action);
-    Object.entries(params).forEach(([k, v]) => { if (v !== '' && v !== null && v !== undefined) url.searchParams.set(k, v); });
+    Object.entries(params).forEach(([k, v]) => {
+        if (v !== '' && v !== null && v !== undefined) url.searchParams.set(k, v);
+    });
     return url.toString();
 }
 
@@ -94,7 +109,7 @@ async function apiGet(action, params = {}) {
 
 async function apiPost(action, body = {}) {
     try {
-        const res  = await fetch(buildUrl(action), {
+        const res = await fetch(buildUrl(action), {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(body),
@@ -115,24 +130,24 @@ async function loadWeekData() {
 
         const [emps, att] = await Promise.all([
             apiGet('employees', params),
-            apiGet('week',      { week_start: ws }),
+            apiGet('week', { week_start: ws }),
         ]);
 
         let ot = {};
         try {
-            const otRes = await fetch(`overtime_api.php?action=overtime&week_start=${ws}`);
-            if (otRes.ok) {
-                const otText = await otRes.text();
-                try { ot = JSON.parse(otText); } catch (e) { ot = {}; }
-            }
+            const otRes = await apiGet('overtime', { week_start: ws });
+            if (otRes && typeof otRes === 'object') ot = otRes;
         } catch (e) { ot = {}; }
 
         employees = Array.isArray(emps) ? emps : [];
         attData   = (att && typeof att === 'object') ? att : {};
         otData    = (ot  && typeof ot  === 'object') ? ot  : {};
 
-        if (!employees.length && emps !== null) console.warn('Employees array is empty. Response was:', emps);
-    } catch (e) { console.error('loadWeekData error:', e); employees = []; }
+        _seedSaveCache();
+    } catch (e) {
+        console.error('loadWeekData error:', e);
+        employees = [];
+    }
     loading(false);
     renderAll(document.getElementById('searchInput').value);
 }
@@ -140,13 +155,20 @@ async function loadWeekData() {
 async function saveAttendance(empId, date, type, value) {
     if (!attData[empId])       attData[empId]       = {};
     if (!attData[empId][date]) attData[empId][date] = {};
-    attData[empId][date][type] = value;
-    await apiPost('save_attendance', {
+    attData[empId][date][type] = value || null;
+
+    const payload = {
         emp_id:   empId,
         att_date: date,
         time_in:  attData[empId][date].in  || null,
         time_out: attData[empId][date].out || null,
-    });
+    };
+
+    const res = await apiPost('save_attendance', payload);
+    if (!res || !res.success) {
+        console.error('Save failed:', empId, date, type, res);
+        showToast('Save failed — check connection.');
+    }
     refreshStats(empId);
 }
 
@@ -161,6 +183,78 @@ async function saveOvertime(empId, field, value) {
     });
     refreshStats(empId);
 }
+
+const _saveCache  = {};
+const _saveTimers = {};
+
+function _seedSaveCache() {
+    Object.keys(_saveCache).forEach(k => delete _saveCache[k]);
+    const weekDates = getWeekDates();
+    employees.forEach(emp => {
+        weekDates.forEach(d => {
+            const date = fmtDate(d);
+            const r    = (attData[emp.id] || {})[date] || {};
+            _saveCache[`${emp.id}_${date}_in`]  = r.in  || '';
+            _saveCache[`${emp.id}_${date}_out`] = r.out || '';
+        });
+    });
+}
+
+function triggerSave(t) {
+    if (!t.classList.contains('time-inp') || weekNavigating) return;
+    const empId  = t.dataset.emp;
+    const date   = t.dataset.date;
+    const type   = t.dataset.t;
+    const key    = `${empId}_${date}_${type}`;
+    const oldVal = (key in _saveCache) ? _saveCache[key] : '';
+    if (oldVal === t.value) return;
+    _saveCache[key] = t.value;
+    t.classList.toggle('has-val', !!t.value);
+    clearTimeout(_saveTimers[key]);
+    _saveTimers[key] = setTimeout(() => {
+        saveAttendance(parseInt(empId), date, type, t.value);
+    }, 400);
+}
+
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.classList.contains('time-inp')) {
+        if (weekNavigating) return;
+        const empId  = t.dataset.emp;
+        const date   = t.dataset.date;
+        const type   = t.dataset.t;
+        const key    = `${empId}_${date}_${type}`;
+        const oldVal = (key in _saveCache) ? _saveCache[key] : '';
+        if (oldVal === t.value) return;
+        _saveCache[key] = t.value;
+        t.classList.toggle('has-val', !!t.value);
+        clearTimeout(_saveTimers[key]);
+        saveAttendance(parseInt(empId), date, type, t.value);
+    }
+    if (t.classList.contains('ot-inp')) {
+        saveOvertime(parseInt(t.dataset.emp), t.dataset.ot, t.value);
+    }
+});
+
+document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.classList.contains('time-inp')) triggerSave(t);
+});
+
+document.addEventListener('blur', e => {
+    const t = e.target;
+    if (!t.classList.contains('time-inp') || weekNavigating) return;
+    const empId  = t.dataset.emp;
+    const date   = t.dataset.date;
+    const type   = t.dataset.t;
+    const key    = `${empId}_${date}_${type}`;
+    const oldVal = (key in _saveCache) ? _saveCache[key] : '';
+    clearTimeout(_saveTimers[key]);
+    if (oldVal === t.value) return;
+    _saveCache[key] = t.value;
+    t.classList.toggle('has-val', !!t.value);
+    saveAttendance(parseInt(empId), date, type, t.value);
+}, true);
 
 function buildCard(emp) {
     const dates    = getWeekDates();
@@ -178,17 +272,19 @@ function buildCard(emp) {
     }).join('');
 
     const tds = dates.map(d => {
-        const k   = fmtDate(d), r = (attData[emp.id] || {})[k] || {};
+        const k   = fmtDate(d);
+        const r   = (attData[emp.id] || {})[k] || {};
         const sat = d.getDay() === 6, sc = sat ? ' col-sat' : '';
         return `
-            <td class="day-sep${sc}"><input type="time" class="time-inp${r.in  ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="in"  value="${r.in  || ''}"></td>
-            <td class="${sc}"><input          type="time" class="time-inp${r.out ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="out" value="${r.out || ''}"></td>`;
+            <td class="day-sep${sc}">
+                <input type="time" class="time-inp${r.in  ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="in"  value="${r.in  || ''}">
+            </td>
+            <td class="${sc}">
+                <input type="time" class="time-inp${r.out ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="out" value="${r.out || ''}">
+            </td>`;
     }).join('');
 
-    const deptIcon = emp.department === 'Field'
-        ? '<i class="fas fa-hard-hat" style="font-size:9px;margin-right:3px"></i>'
-        : '<i class="fas fa-building"  style="font-size:9px;margin-right:3px"></i>';
-
+    const deptIcon     = emp.department === 'Field' ? '<i class="fas fa-hard-hat" style="font-size:9px;margin-right:3px"></i>' : '<i class="fas fa-building" style="font-size:9px;margin-right:3px"></i>';
     const empIdDisplay = emp.employee_id ? emp.employee_id : '#' + String(emp.id).padStart(3, '0');
 
     const strip = `
@@ -274,7 +370,7 @@ function renderAll(query = '') {
     const q         = query.toLowerCase().trim();
     const container = document.getElementById('empContainer');
     if (!employees.length) {
-        container.innerHTML = `<div class="no-results"><i class="fas fa-users-slash"></i><p>No employees found. Check your database connection or add employees.</p></div>`;
+        container.innerHTML = `<div class="no-results"><i class="fas fa-users-slash"></i><p>No employees found.</p></div>`;
         return;
     }
     const filtered = employees.filter(e =>
@@ -323,22 +419,13 @@ function refreshStats(empId) {
     set(`hs-abs-${empId}`,    t.absent + 'd');
 }
 
-document.addEventListener('change', e => {
-    const t = e.target;
-    if (t.classList.contains('time-inp')) {
-        saveAttendance(parseInt(t.dataset.emp), t.dataset.date, t.dataset.t, t.value);
-        t.classList.toggle('has-val', !!t.value);
-    }
-    if (t.classList.contains('ot-inp')) saveOvertime(parseInt(t.dataset.emp), t.dataset.ot, t.value);
-});
-
 function clearModal() {
-    document.getElementById('fEmpId').value    = '';
-    document.getElementById('fName').value     = '';
-    document.getElementById('fPhone').value    = '';
-    document.getElementById('fDept').value     = '';
-    document.getElementById('fPosition').value = '';
-    document.getElementById('fEmpType').value  = 'Full Time';
+    document.getElementById('fEmpId').value     = '';
+    document.getElementById('fName').value      = '';
+    document.getElementById('fPhone').value     = '';
+    document.getElementById('fDept').value      = '';
+    document.getElementById('fPosition').value  = '';
+    document.getElementById('fEmpType').value   = 'Full Time';
     document.getElementById('fHireDate').value  = '';
 }
 
@@ -375,17 +462,17 @@ async function saveEmployee() {
     const employment_type = document.getElementById('fEmpType').value;
     const hire_date       = document.getElementById('fHireDate').value;
 
-    if (!employee_id) { document.getElementById('fEmpId').focus();    showToast('Employee ID is required.');  return; }
-    if (!name)        { document.getElementById('fName').focus();      showToast('Full name is required.');    return; }
-    if (!dept)        { document.getElementById('fDept').focus();      showToast('Department is required.');   return; }
-    if (!position)    { document.getElementById('fPosition').focus();  showToast('Position is required.');     return; }
+    if (!employee_id) { document.getElementById('fEmpId').focus();   showToast('Employee ID is required.');  return; }
+    if (!name)        { document.getElementById('fName').focus();     showToast('Full name is required.');    return; }
+    if (!dept)        { document.getElementById('fDept').focus();     showToast('Department is required.');   return; }
+    if (!position)    { document.getElementById('fPosition').focus(); showToast('Position is required.');     return; }
 
     let res;
     if (editTargetId) {
-        res = await apiPost('edit_employee', { id: editTargetId, employee_id, name, phone, dept, position, employment_type, daily_rate, hire_date });
+        res = await apiPost('edit_employee', { id: editTargetId, employee_id, name, phone, dept, position, employment_type, hire_date });
     } else {
         const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        res = await apiPost('add_employee', { employee_id, name, phone, dept, position, employment_type, daily_rate, hire_date, color });
+        res = await apiPost('add_employee', { employee_id, name, phone, dept, position, employment_type, hire_date, color });
     }
 
     if (res && !res.success) { showToast(res.message || 'Error saving employee.'); return; }
@@ -411,9 +498,12 @@ async function doDelete() {
 }
 
 function goWeek(dir) {
+    weekNavigating = true;
     currentWeekStart = addDays(new Date(currentWeekStart), dir * 7);
     document.getElementById('weekLabel').textContent = weekLabel();
-    loadWeekData();
+    setTimeout(() => {
+        loadWeekData().then(() => { weekNavigating = false; });
+    }, 50);
 }
 
 function showToast(msg) {
@@ -447,12 +537,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('headerDate').textContent =
-        new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+        new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
     document.getElementById('saveEmpBtn').onclick    = saveEmployee;
     document.getElementById('cancelEmpBtn').onclick  = () => document.getElementById('empModal').classList.remove('open');
     document.getElementById('modalCloseBtn').onclick = () => document.getElementById('empModal').classList.remove('open');
     document.getElementById('empModal').onclick      = e => { if (e.target === document.getElementById('empModal')) document.getElementById('empModal').classList.remove('open'); };
+
     document.getElementById('fEmpId').addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('fName').focus(); });
     document.getElementById('fName').addEventListener('keydown',     e => { if (e.key === 'Enter') document.getElementById('fPhone').focus(); });
     document.getElementById('fPosition').addEventListener('keydown', e => { if (e.key === 'Enter') saveEmployee(); });
@@ -469,16 +560,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-(function(){
+(function () {
     const btn     = document.getElementById('mobileHamburgerBtn');
     const drawer  = document.getElementById('mobileDrawer');
     const overlay = document.getElementById('mobileNavOverlay');
     const close   = document.getElementById('mobileDrawerClose');
-    function open(){ drawer.classList.add('open'); overlay.classList.add('visible'); btn.classList.add('is-open'); }
-    function shut(){ drawer.classList.remove('open'); overlay.classList.remove('visible'); btn.classList.remove('is-open'); }
-    if(btn)     btn.addEventListener('click', open);
-    if(close)   close.addEventListener('click', shut);
-    if(overlay) overlay.addEventListener('click', shut);
-
+    function open() { drawer.classList.add('open'); overlay.classList.add('visible'); btn.classList.add('is-open'); }
+    function shut() { drawer.classList.remove('open'); overlay.classList.remove('visible'); btn.classList.remove('is-open'); }
+    if (btn)     btn.addEventListener('click', open);
+    if (close)   close.addEventListener('click', shut);
+    if (overlay) overlay.addEventListener('click', shut);
 })();
-
