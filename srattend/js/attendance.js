@@ -1,4 +1,4 @@
-const API = '../srattend/attendance.php';
+const API = 'attendance.php';
 const WORK_START_FIELD_MIN  = 7  * 60 + 10;
 const WORK_START_OFFICE_MIN = 8  * 60 + 10;
 const WORK_END_MIN          = 17 * 60;
@@ -68,10 +68,15 @@ function computeTotals(empId) {
     const emp   = employees.find(e => e.id == empId);
     const dept  = emp ? emp.department : 'Office';
     const dates = getWeekDates();
+    const today = new Date(); today.setHours(0,0,0,0);
     let late = 0, under = 0, hrs = 0, present = 0, absent = 0;
     dates.forEach(d => {
         const k = fmtDate(d), r = (attData[empId] || {})[k] || {};
-        if (r.in || r.out) { present++; } else { absent++; }
+        if (r.in || r.out) {
+            present++;
+        } else if (d < today) {
+            absent++;
+        }
         late  += calcLate(r.in, dept);
         under += calcUnder(r.out);
         hrs   += calcHrs(r.in, r.out);
@@ -271,18 +276,21 @@ function buildCard(emp) {
         return `<th${cls}>In</th><th${cls}>Out</th>`;
     }).join('');
 
-    const tds = dates.map(d => {
-        const k   = fmtDate(d);
-        const r   = (attData[emp.id] || {})[k] || {};
-        const sat = d.getDay() === 6, sc = sat ? ' col-sat' : '';
-        return `
-            <td class="day-sep${sc}">
-                <input type="time" class="time-inp${r.in  ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="in"  value="${r.in  || ''}">
-            </td>
-            <td class="${sc}">
-                <input type="time" class="time-inp${r.out ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="out" value="${r.out || ''}">
-            </td>`;
-    }).join('');
+const tds = dates.map(d => {
+    const k     = fmtDate(d);
+    const r     = (attData[emp.id] || {})[k] || {};
+    const sat   = d.getDay() === 6, sc = sat ? ' col-sat' : '';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const isPastWeekday = d < today;
+    const absentCls = (!r.in && !r.out && isPastWeekday) ? ' col-absent' : '';
+    return `
+        <td class="day-sep${sc}${absentCls}">
+            <input type="time" class="time-inp${r.in  ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="in"  value="${r.in  || ''}">
+        </td>
+        <td class="${sc}${absentCls}">
+            <input type="time" class="time-inp${r.out ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="out" value="${r.out || ''}">
+        </td>`;
+}).join('');
 
     const deptIcon     = emp.department === 'Field' ? '<i class="fas fa-hard-hat" style="font-size:9px;margin-right:3px"></i>' : '<i class="fas fa-building" style="font-size:9px;margin-right:3px"></i>';
     const empIdDisplay = emp.employee_id ? emp.employee_id : '#' + String(emp.id).padStart(3, '0');
