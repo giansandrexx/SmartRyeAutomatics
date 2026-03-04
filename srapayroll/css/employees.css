@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
         :root {
             --blue-900:#0d2f6e;--blue-800:#1245a8;--blue-600:#1a6ed8;
             --blue-500:#2196F3;--blue-400:#42a5f5;--blue-200:#bbdefb;
@@ -373,4 +372,5 @@ select.form-input { cursor: pointer; }
     .modal-box   { max-width: 98vw; margin: 0 8px; }
     .modal-grid  { grid-template-columns: 1fr; }
     .modal-grid .full { grid-column: 1; }
+
 }
