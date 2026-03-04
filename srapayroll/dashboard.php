@@ -35,10 +35,10 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRA Payroll – Dashboard</title>
+    <title>SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="../srapayroll/css/dashboard.css">
 </head>
 <body>
 
@@ -179,24 +179,6 @@ $conn->close();
     </div>
 
 </div>
-
-<script>
-    document.getElementById('headerDate').textContent =
-        new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-    const btn = document.getElementById('userDropdownBtn');
-    const menu = document.getElementById('userDropdownMenu');
-    btn.addEventListener('click', () => {
-        btn.classList.toggle('open');
-        menu.classList.toggle('open');
-    });
-    document.addEventListener('click', e => {
-        if (!btn.contains(e.target) && !menu.contains(e.target)) {
-            btn.classList.remove('open');
-            menu.classList.remove('open');
-        }
-    });
-</script>
+<script src="../srapayroll/js/dashboard.js"></script>
 </body>
 </html>
-

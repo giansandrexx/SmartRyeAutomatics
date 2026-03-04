@@ -31,5 +31,6 @@
         <li><a href="dashboard"       class="<?= $cp=='dashboard.php'?'active':'' ?>"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
         <li><a href="employees"       class="<?= $cp=='employees.php'?'active':'' ?>"><i class="fas fa-users"></i> Employees</a></li>
         <li><a href="process_payroll" class="<?= $cp=='process_payroll.php'?'active':'' ?>"><i class="fas fa-money-check-alt"></i> Process Payroll</a></li>
+        <li><a href="attendance" class="<?= $cp=='attendance.php'?'active':'' ?>"><i class="fas fa-money-check-alt"></i>View Attendance</a></li>
     </ul>
 </nav>

@@ -109,10 +109,10 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRA Payroll</title>
+    <title>SRA Payroll – Process Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/process.css">
+    <link rel="stylesheet" href="../srapayroll/css/process.css">
 </head>
 <body>
 
@@ -377,6 +377,4 @@ document.getElementById('applyGov').addEventListener('change', function() {
 compute();
 </script>
 </body>
-
 </html>
-
