@@ -339,7 +339,6 @@ function clearModal() {
     document.getElementById('fDept').value     = '';
     document.getElementById('fPosition').value = '';
     document.getElementById('fEmpType').value  = 'Full Time';
-    document.getElementById('fDailyRate').value = '';
     document.getElementById('fHireDate').value  = '';
 }
 
@@ -483,4 +482,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if(btn)     btn.addEventListener('click', open);
     if(close)   close.addEventListener('click', shut);
     if(overlay) overlay.addEventListener('click', shut);
+
 })();
