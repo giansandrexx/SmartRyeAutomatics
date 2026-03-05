@@ -8,10 +8,10 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance - SRA Payroll</title>
+    <title>SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/attendance.css">
+    <link rel="stylesheet" href="../srapayroll/css/attendance.css">
 </head>
 <body>
 
@@ -44,7 +44,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 
     <div class="av-page-header">
         <div>
-            <h2 class="av-page-title"><i class="fas fa-address-card"></i> Attendance</h2>
+            <h2 class="av-page-title"></i> Attendance</h2>
             <p class="av-page-sub">Monthly view of employee attendance records</p>
         </div>
     </div>
@@ -103,6 +103,4 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 
 <script src="js/attendance.js"></script>
 </body>
-
 </html>
-

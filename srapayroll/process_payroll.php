@@ -28,9 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $late_minutes = (float)($_POST['late_minutes'] ?? 0);
     $ot_hours     = (float)($_POST['ot_hours'] ?? 0);
     $other_deduct = (float)($_POST['other_deductions'] ?? 0);
-    $sss          = (float)($_POST['sss'] ?? 200);
-    $philhealth   = (float)($_POST['philhealth'] ?? 250);
-    $pagibig      = (float)($_POST['pagibig'] ?? 100);
+    $sss          = (float)($_POST['sss'] ?? 0);
+    $philhealth   = (float)($_POST['philhealth'] ?? 0);
+    $pagibig      = (float)($_POST['pagibig'] ?? 0);
     $remarks      = $conn->real_escape_string($_POST['remarks'] ?? '');
     $apply_gov    = isset($_POST['apply_gov']) ? 1 : 0;
 
@@ -109,10 +109,10 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRA Payroll – Process Payroll</title>
+    <title>SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/process.css">
+    <link rel="stylesheet" href="../srapayroll/css/process.css">
 </head>
 <body>
 
@@ -167,15 +167,23 @@ $conn->close();
                         </div>
                     </div>
 
+                    <div class="fetch-banner" id="fetchBanner" style="display:none">
+                        <i class="fas fa-circle-notch fetch-icon" id="fetchIcon"></i>
+                        <span id="fetchStatus">Fetching attendance…</span>
+                        <button type="button" class="fetch-refetch-btn" id="fetchBtn">
+                            <i class="fas fa-sync-alt"></i> Re-fetch
+                        </button>
+                    </div>
+
                     <div class="section-title"><i class="fas fa-calendar"></i> Pay Period</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Date From <span class="req">*</span></label>
-                            <input type="date" class="fc" name="date_from" required>
+                            <input type="date" class="fc" name="date_from" id="dateFrom" required>
                         </div>
                         <div class="form-group">
                             <label>Date To <span class="req">*</span></label>
-                            <input type="date" class="fc" name="date_to" required>
+                            <input type="date" class="fc" name="date_to" id="dateTo" required>
                         </div>
                     </div>
 
@@ -215,15 +223,15 @@ $conn->close();
                         <label class="toggle"><input type="checkbox" name="apply_gov" id="applyGov"><span class="slider"></span></label>
                     </div>
                     <div class="gov-fields" id="govFields">
-                        <div class="gf-group"><label>SSS</label><input type="number" class="fc" name="sss" id="sssInput" value="200" min="0" step="0.01"></div>
-                        <div class="gf-group"><label>PhilHealth</label><input type="number" class="fc" name="philhealth" id="philhealthInput" value="250" min="0" step="0.01"></div>
-                        <div class="gf-group"><label>Pag-IBIG</label><input type="number" class="fc" name="pagibig" id="pagibigInput" value="100" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>SSS</label><input type="number" class="fc" name="sss" id="sssInput" value="0" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>PhilHealth</label><input type="number" class="fc" name="philhealth" id="philhealthInput" value="0" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>Pag-IBIG</label><input type="number" class="fc" name="pagibig" id="pagibigInput" value="0" min="0" step="0.01"></div>
                     </div>
 
                     <div class="section-title"><i class="fas fa-comment-alt"></i> Remarks</div>
                     <div class="form-row single">
                         <div class="form-group">
-                            <label>Remarks</label>
+                            <label>Add Notes</label>
                             <textarea class="fc" name="remarks" rows="2" placeholder="Optional notes..."></textarea>
                         </div>
                     </div>
@@ -280,23 +288,25 @@ const CA  = <?php echo json_encode($cash_advances); ?>;
 document.getElementById('headerDate').textContent =
     new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-const ddBtn = document.getElementById('userDropdownBtn');
+const ddBtn  = document.getElementById('userDropdownBtn');
 const ddMenu = document.getElementById('userDropdownMenu');
 ddBtn.addEventListener('click', () => { ddBtn.classList.toggle('open'); ddMenu.classList.toggle('open'); });
 document.addEventListener('click', e => {
-    if (!ddBtn.contains(e.target) && !ddMenu.contains(e.target)) { ddBtn.classList.remove('open'); ddMenu.classList.remove('open'); }
+    if (!ddBtn.contains(e.target) && !ddMenu.contains(e.target)) {
+        ddBtn.classList.remove('open'); ddMenu.classList.remove('open');
+    }
 });
 
 const p = n => '₱' + parseFloat(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 function compute() {
-    const id       = document.getElementById('empSelect').value;
-    const emp      = id ? EMP[id] : null;
-    const isField  = emp ? (emp.department||'').toLowerCase().trim() === 'field' : false;
-    const maxDays  = isField ? 6 : 15;
-    const rate     = emp ? parseFloat(emp.daily_rate) : 0;
+    const id      = document.getElementById('empSelect').value;
+    const emp     = id ? EMP[id] : null;
+    const isField = emp ? (emp.department||'').toLowerCase().trim() === 'field' : false;
+    const maxDays = isField ? 6 : 15;
+    const rate    = emp ? parseFloat(emp.daily_rate) : 0;
 
-    document.getElementById('daysWorked').max = maxDays;
+    document.getElementById('daysWorked').max       = maxDays;
     document.getElementById('daysHint').textContent = isField ? 'Max 6/week' : 'Max 15/period';
 
     const days   = parseFloat(document.getElementById('daysWorked').value)     || 0;
@@ -325,15 +335,16 @@ function compute() {
     document.getElementById('cAbsent').textContent   = '– ' + p(absDed);
     document.getElementById('cLate').textContent     = '– ' + p(lateDed);
     document.getElementById('cGross').textContent    = p(gross);
-    document.getElementById('govNoneTxt').style.display  = gov ? 'none' : 'block';
-    document.getElementById('govApplied').style.display  = gov ? 'block' : 'none';
-    document.getElementById('cSss').textContent     = p(sss);
-    document.getElementById('cPh').textContent      = p(ph);
-    document.getElementById('cPi').textContent      = p(pi);
-    document.getElementById('cCa').textContent      = p(ca);
-    document.getElementById('cOther').textContent   = p(other);
-    document.getElementById('cTotal').textContent   = p(totDed);
-    document.getElementById('cNet').textContent     = parseFloat(net||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+    document.getElementById('govNoneTxt').style.display = gov ? 'none'  : 'block';
+    document.getElementById('govApplied').style.display = gov ? 'block' : 'none';
+    document.getElementById('cSss').textContent   = p(sss);
+    document.getElementById('cPh').textContent    = p(ph);
+    document.getElementById('cPi').textContent    = p(pi);
+    document.getElementById('cCa').textContent    = p(ca);
+    document.getElementById('cOther').textContent = p(other);
+    document.getElementById('cTotal').textContent = p(totDed);
+    document.getElementById('cNet').textContent   =
+        parseFloat(net||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
     const sub = document.getElementById('cSub');
     if (!emp) {
@@ -348,28 +359,82 @@ function compute() {
     }
 }
 
-document.getElementById('empSelect').addEventListener('change', function() {
+async function fetchAttendanceSummary(empId) {
+    const banner = document.getElementById('fetchBanner');
+    const status = document.getElementById('fetchStatus');
+    const icon   = document.getElementById('fetchIcon');
+    const btn    = document.getElementById('fetchBtn');
+
+    banner.style.display = 'flex';
+    banner.className     = 'fetch-banner loading';
+    status.textContent   = 'Fetching attendance data…';
+    icon.className       = 'fas fa-circle-notch fa-spin fetch-icon';
+    btn.disabled         = true;
+
+    try {
+        const res  = await fetch('get_payroll_summary.php?employee_id=' + empId);
+        const data = await res.json();
+
+        if (!data.success) {
+            banner.className   = 'fetch-banner error';
+            status.textContent = 'Could not load attendance: ' + (data.message || 'Unknown error');
+            icon.className     = 'fas fa-exclamation-triangle fetch-icon';
+            btn.disabled       = false;
+            return;
+        }
+
+        document.getElementById('dateFrom').value      = data.date_from;
+        document.getElementById('dateTo').value        = data.date_to;
+        document.getElementById('daysWorked').value    = data.days_worked;
+        document.getElementById('absentDays').value    = data.absent_days;
+        document.getElementById('lateMinutes').value   = data.late_minutes;
+        document.getElementById('otHours').value       = data.ot_hours;
+
+        banner.className   = 'fetch-banner success';
+        icon.className     = 'fas fa-check-circle fetch-icon';
+        status.textContent = data.period_label + ' · ' + data.date_from + ' → ' + data.date_to + ' · Edit any field to adjust.';
+        compute();
+    } catch (err) {
+        banner.className   = 'fetch-banner error';
+        status.textContent = 'Fetch error — check connection.';
+        icon.className     = 'fas fa-exclamation-triangle fetch-icon';
+    }
+
+    btn.disabled = false;
+}
+
+document.getElementById('empSelect').addEventListener('change', function () {
     const emp    = this.value ? EMP[this.value] : null;
     const banner = document.getElementById('empBanner');
+
     if (emp) {
         const isField = (emp.department||'').toLowerCase().trim() === 'field';
         document.getElementById('bannerName').textContent = emp.name;
-        document.getElementById('bannerDept').textContent = (emp.department||'No dept') + (isField ? ' · Weekly' : ' · Semi-Monthly');
+        document.getElementById('bannerDept').textContent =
+            (emp.department||'No dept') + (isField ? ' · Weekly' : ' · Semi-Monthly');
         document.getElementById('bannerRate').textContent = p(emp.daily_rate) + '/day';
         banner.classList.add('show');
+        fetchAttendanceSummary(this.value);
     } else {
         banner.classList.remove('show');
+        document.getElementById('fetchBanner').style.display = 'none';
     }
     compute();
 });
 
-['daysWorked','absentDays','lateMinutes','otHours','otherDeductions','sssInput','philhealthInput','pagibigInput'].forEach(function(id) {
+document.getElementById('fetchBtn').addEventListener('click', function () {
+    const id = document.getElementById('empSelect').value;
+    if (id) fetchAttendanceSummary(id);
+});
+
+['daysWorked','absentDays','lateMinutes','otHours','otherDeductions',
+ 'sssInput','philhealthInput','pagibigInput'].forEach(function(id) {
     const el = document.getElementById(id);
     if (el) { el.addEventListener('input', compute); el.addEventListener('change', compute); }
 });
 
-document.getElementById('applyGov').addEventListener('change', function() {
-    document.getElementById('govFields').style.opacity       = this.checked ? '1' : '0.4';
+document.getElementById('applyGov').addEventListener('change', function () {
+    document.getElementById('govFields').style.opacity       = this.checked ? '1'    : '0.4';
     document.getElementById('govFields').style.pointerEvents = this.checked ? 'auto' : 'none';
     compute();
 });
@@ -377,5 +442,4 @@ document.getElementById('applyGov').addEventListener('change', function() {
 compute();
 </script>
 </body>
-
 </html>
