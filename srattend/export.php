@@ -68,11 +68,6 @@ function ss(string $v): int {
     return $ssIndex[$v];
 }
 
-// Style index reference:
-// 0=default, 1=title, 2=dayHdr-blue, 3=dayHdr-darkblue, 4=dayHdr-sat, 5=summaryHdr
-// 6=subHdr, 7=deptSep, 8=dataEven, 9=dataOdd, 10=nameEven, 11=nameOdd
-// 12=lateCell, 13=absentCell, 14=otCell, 15=satEven, 16=satOdd, 17=outBorderEven, 18=outBorderOdd
-
 $styleXml = <<<'XML'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -158,17 +153,15 @@ XML;
 $rows   = [];
 $merges = [];
 
-// Row 1 — Title
 $weekLabel = date('M d', strtotime($week_start)) . ' – ' . date('M d, Y', strtotime($week_end));
 $deptLabel = $dept ? " · {$dept}" : '';
 $rows[]   = ['h' => 28, 'cells' => [['c'=>1,'t'=>'s','v'=>ss("SRA Attendance Report · {$weekLabel}{$deptLabel}"),'s'=>1]]];
 $merges[] = 'A1:' . colLetter($TOTAL_COLS) . '1';
 
-// Row 2 — Group headers
-$dayCols   = [[4,5],[6,7],[8,9],[10,11],[12,13],[14,15]];
+$dayCols     = [[4,5],[6,7],[8,9],[10,11],[12,13],[14,15]];
 $dayStyleMap = [2,3,2,3,2,4];
-$r2cells   = [['c'=>1,'t'=>'s','v'=>ss('EMPLOYEE'),'s'=>3]];
-$merges[]  = 'A2:C2';
+$r2cells     = [['c'=>1,'t'=>'s','v'=>ss('EMPLOYEE'),'s'=>3]];
+$merges[]    = 'A2:C2';
 foreach ($dayNames as $i => $name) {
     [$c1,$c2] = $dayCols[$i];
     $ds = date('M d', strtotime($dates[$i]));
@@ -179,7 +172,6 @@ $r2cells[] = ['c'=>16,'t'=>'s','v'=>ss('SUMMARY'),'s'=>5];
 $merges[]  = 'P2:W2';
 $rows[]    = ['h'=>20,'cells'=>$r2cells];
 
-// Row 3 — Sub-headers
 $subH = ['#','Name','Dept'];
 foreach ($dayNames as $n) { $subH[]='In'; $subH[]='Out'; }
 array_push($subH,'Late','Undertime','Present','Absent','Total Hrs','OT Morn','OT Aftn','OT Total');
@@ -187,7 +179,6 @@ $r3c = [];
 foreach ($subH as $i=>$h) { $r3c[] = ['c'=>$i+1,'t'=>'s','v'=>ss($h),'s'=>6]; }
 $rows[] = ['h'=>18,'cells'=>$r3c];
 
-// Data rows
 $dataRowIdx = 4;
 $prevDept   = null;
 
@@ -237,20 +228,19 @@ foreach ($employees as $emp) {
     $otM = (float)($ot[$emp['id']]['ot_morning']  ??0);
     $otA = (float)($ot[$emp['id']]['ot_afternoon']??0);
 
-    $cells[] = ['c'=>16,'t'=>'s','v'=>ss(minToHM($late)),       's'=>$late>0  ? 12 : $bs];
-    $cells[] = ['c'=>17,'t'=>'s','v'=>ss(minToHM($under)),      's'=>$bs];
-    $cells[] = ['c'=>18,'t'=>'n','v'=>$present,                 's'=>$bs];
-    $cells[] = ['c'=>19,'t'=>'n','v'=>$absent,                  's'=>$absent>0 ? 13 : $bs];
-    $cells[] = ['c'=>20,'t'=>'n','v'=>round($hrs,1),            's'=>$bs];
-    $cells[] = ['c'=>21,'t'=>'n','v'=>$otM,                     's'=>$bs];
-    $cells[] = ['c'=>22,'t'=>'n','v'=>$otA,                     's'=>$bs];
-    $cells[] = ['c'=>23,'t'=>'n','v'=>round($otM+$otA,1),       's'=>($otM+$otA)>0 ? 14 : $bs];
+    $cells[] = ['c'=>16,'t'=>'s','v'=>ss(minToHM($late)),  's'=>$late>0       ? 12 : $bs];
+    $cells[] = ['c'=>17,'t'=>'s','v'=>ss(minToHM($under)), 's'=>$bs];
+    $cells[] = ['c'=>18,'t'=>'n','v'=>$present,            's'=>$bs];
+    $cells[] = ['c'=>19,'t'=>'n','v'=>$absent,             's'=>$absent>0     ? 13 : $bs];
+    $cells[] = ['c'=>20,'t'=>'n','v'=>round($hrs,1),       's'=>$bs];
+    $cells[] = ['c'=>21,'t'=>'n','v'=>$otM,                's'=>$bs];
+    $cells[] = ['c'=>22,'t'=>'n','v'=>$otA,                's'=>$bs];
+    $cells[] = ['c'=>23,'t'=>'n','v'=>round($otM+$otA,1),  's'=>($otM+$otA)>0 ? 14 : $bs];
 
     $rows[] = ['h'=>17,'cells'=>$cells];
     $dataRowIdx++;
 }
 
-// Build sheet XML
 $colWidths = [5,26,10, 9,9, 9,9, 9,9, 9,9, 9,9, 9,9, 10,10,8,8,10,10,12,10];
 $colXml = '';
 foreach ($colWidths as $i=>$w) { $n=$i+1; $colXml.="<col min=\"{$n}\" max=\"{$n}\" width=\"{$w}\" customWidth=\"1\"/>"; }
@@ -309,26 +299,44 @@ $ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 </Types>';
 
-$tmp = tempnam(sys_get_temp_dir(),'sra_').'xlsx';
-$zip = new ZipArchive();
-$zip->open($tmp, ZipArchive::CREATE|ZipArchive::OVERWRITE);
-$zip->addFromString('[Content_Types].xml',         $ct);
-$zip->addFromString('_rels/.rels',                 $pkgRels);
-$zip->addFromString('xl/workbook.xml',             $workbookXml);
-$zip->addFromString('xl/_rels/workbook.xml.rels',  $wbRels);
-$zip->addFromString('xl/worksheets/sheet1.xml',    $sheetXml);
-$zip->addFromString('xl/sharedStrings.xml',        $ssXml);
-$zip->addFromString('xl/styles.xml',               $styleXml);
-$zip->close();
+function makeZip(array $files): string {
+    $cd = ''; $data = ''; $offset = 0;
+    foreach ($files as $name => $content) {
+        $crc   = crc32($content);
+        $size  = strlen($content);
+        $local = "\x50\x4b\x03\x04\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+               . pack('V', $crc) . pack('V', $size) . pack('V', $size)
+               . pack('v', strlen($name)) . "\x00\x00" . $name . $content;
+        $data .= $local;
+        $cd   .= "\x50\x4b\x01\x02\x14\x00\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+               . pack('V', $crc) . pack('V', $size) . pack('V', $size)
+               . pack('v', strlen($name)) . "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+               . pack('V', $offset) . $name;
+        $offset += strlen($local);
+    }
+    $cdSize = strlen($cd);
+    $eocd   = "\x50\x4b\x05\x06\x00\x00\x00\x00"
+             . pack('v', count($files)) . pack('v', count($files))
+             . pack('V', $cdSize) . pack('V', $offset) . "\x00\x00";
+    return $data . $cd . $eocd;
+}
 
-$dr  = date('MdY',strtotime($week_start)).'-'.date('MdY',strtotime($week_end));
-$fn  = "SRA_Attendance_{$dr}".($dept?"_{$dept}":'').'.xlsx';
+$zipBytes = makeZip([
+    '[Content_Types].xml'        => $ct,
+    '_rels/.rels'                => $pkgRels,
+    'xl/workbook.xml'            => $workbookXml,
+    'xl/_rels/workbook.xml.rels' => $wbRels,
+    'xl/worksheets/sheet1.xml'   => $sheetXml,
+    'xl/sharedStrings.xml'       => $ssXml,
+    'xl/styles.xml'              => $styleXml,
+]);
+
+$dr = date('MdY', strtotime($week_start)) . '-' . date('MdY', strtotime($week_end));
+$fn = "SRA_Attendance_{$dr}" . ($dept ? "_{$dept}" : '') . '.xlsx';
 
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header("Content-Disposition: attachment; filename=\"{$fn}\"");
-header('Content-Length: '.filesize($tmp));
+header('Content-Length: ' . strlen($zipBytes));
 header('Cache-Control: max-age=0');
-readfile($tmp);
-unlink($tmp);
-
+echo $zipBytes;
 exit();
