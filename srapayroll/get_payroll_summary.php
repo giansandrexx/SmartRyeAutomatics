@@ -8,7 +8,6 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
 }
-
 require_once "../config.php";
 
 $employee_id = (int)($_GET['employee_id'] ?? 0);
@@ -124,5 +123,6 @@ echo json_encode([
     'department'   => $emp['department'],
     'period_label' => ($dept === 'field') ? 'Weekly (Mon–Sat)' : 'Semi-Monthly',
 ]);
+
 
 $conn->close();
