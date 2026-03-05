@@ -3,9 +3,7 @@ session_start();
 date_default_timezone_set('Asia/Manila');
 if (!isset($_SESSION['user_id'])) { http_response_code(403); exit(); }
 
-$conn = new mysqli('localhost', 'root', '', 'srasystem');
-if ($conn->connect_error) { http_response_code(500); exit(); }
-$conn->set_charset("utf8mb4");
+require_once "../config.php";
 
 $week_start = $_GET['week_start'] ?? date('Y-m-d', strtotime('Monday this week'));
 $dept       = $_GET['dept'] ?? '';
@@ -332,4 +330,5 @@ header('Content-Length: '.filesize($tmp));
 header('Cache-Control: max-age=0');
 readfile($tmp);
 unlink($tmp);
+
 exit();
