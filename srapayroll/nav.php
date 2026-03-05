@@ -23,7 +23,6 @@
         </div>
     </div>
 </div>
-
 <?php $current_page = basename($_SERVER['PHP_SELF']); ?>
 <?php $cp = basename($_SERVER['PHP_SELF']); ?>
 <nav class="nav-bar">
@@ -33,4 +32,5 @@
         <li><a href="process_payroll" class="<?= $cp=='process_payroll.php'?'active':'' ?>"><i class="fas fa-money-check-alt"></i> Process Payroll</a></li>
         <li><a href="attendance" class="<?= $cp=='attendance.php'?'active':'' ?>"><i class="fas fa-calendar-check"></i>View Attendance</a></li>
     </ul>
+
 </nav>
