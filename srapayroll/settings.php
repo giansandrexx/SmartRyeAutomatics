@@ -60,8 +60,8 @@ function sv($settings, $key, $default = '0') {
     <title>SRA Payroll — Settings</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="../srapayroll/css/process.css">
-    <link rel="stylesheet" href="../srapayroll/css/settings.css">
+    <link rel="stylesheet" href="css/process.css">
+    <link rel="stylesheet" href="css/settings.css">
 </head>
 <body>
 
@@ -241,4 +241,5 @@ toast.classList.add('show');
 setTimeout(() => toast.classList.remove('show'), 3000);
 </script>
 </body>
+
 </html>
