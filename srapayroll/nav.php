@@ -23,14 +23,17 @@
         </div>
     </div>
 </div>
+
 <?php $current_page = basename($_SERVER['PHP_SELF']); ?>
 <?php $cp = basename($_SERVER['PHP_SELF']); ?>
 <nav class="nav-bar">
-    <ul>
-        <li><a href="dashboard"       class="<?= $cp=='dashboard.php'?'active':'' ?>"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
-        <li><a href="employees"       class="<?= $cp=='employees.php'?'active':'' ?>"><i class="fas fa-users"></i> Employees</a></li>
-        <li><a href="process_payroll" class="<?= $cp=='process_payroll.php'?'active':'' ?>"><i class="fas fa-money-check-alt"></i> Process Payroll</a></li>
-        <li><a href="attendance" class="<?= $cp=='attendance.php'?'active':'' ?>"><i class="fas fa-calendar-check"></i>View Attendance</a></li>
-    </ul>
-
+<ul>
+    <li><a href="dashboard"       class="<?= $cp=='dashboard.php'?'active':'' ?>"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
+    <li><a href="employees"       class="<?= $cp=='employees.php'?'active':'' ?>"><i class="fas fa-users"></i> Employees</a></li>
+    <li><a href="process_payroll" class="<?= $cp=='process_payroll.php'?'active':'' ?>"><i class="fas fa-money-check-alt"></i> Process Payroll</a></li>
+    <li><a href="attendance"      class="<?= $cp=='attendance.php'?'active':'' ?>"><i class="fas fa-calendar-check"></i> View Attendance</a></li>
+    <li><a href="cash_advance"    class="<?= $cp=='cash_advance.php'?'active':'' ?>"><i class="fas fa-money-bill-wave"></i> Cash Advance</a></li>
+    <li><a href="payslips"        class="<?= $cp=='payslips.php'?'active':'' ?>"><i class="fas fa-file-invoice-dollar"></i> Payslips</a></li>
+    <li><a href="settings"        class="<?= $cp=='settings.php'?'active':'' ?>"><i class="fas fa-cog"></i> Settings</a></li>
+</ul>
 </nav>

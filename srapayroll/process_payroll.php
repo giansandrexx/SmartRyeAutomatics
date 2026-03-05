@@ -5,6 +5,19 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 
 require_once "../config.php";
 
+$ps = [];
+$r = $conn->query("SHOW TABLES LIKE 'payroll_settings'");
+if ($r && $r->num_rows > 0) {
+    $r = $conn->query("SELECT setting_key, setting_value FROM payroll_settings");
+    if ($r) { while ($row = $r->fetch_assoc()) { $ps[$row['setting_key']] = (float)$row['setting_value']; } }
+}
+$setting_late_rate  = $ps['late_rate']    ?? 2.5;
+$setting_ot_rate    = $ps['ot_rate']      ?? 150;
+$setting_grace      = $ps['grace_period'] ?? 0;
+$setting_sss        = $ps['sss']          ?? 600;
+$setting_philhealth = $ps['philhealth']   ?? 300;
+$setting_pagibig    = $ps['pagibig']      ?? 100;
+
 $message = '';
 $message_type = '';
 
@@ -15,8 +28,22 @@ if ($r) { while ($row = $r->fetch_assoc()) { $employees[] = $row; } }
 $cash_advances = [];
 $r = $conn->query("SHOW TABLES LIKE 'cash_advances'");
 if ($r && $r->num_rows > 0) {
-    $r = $conn->query("SELECT employee_id, SUM(amount) as total FROM cash_advances WHERE status = 'pending' GROUP BY employee_id");
-    if ($r) { while ($row = $r->fetch_assoc()) { $cash_advances[$row['employee_id']] = $row['total']; } }
+    $r = $conn->query("
+        SELECT ca.employee_id,
+               SUM(ca.amount) as total,
+               GROUP_CONCAT(CONCAT('₱', FORMAT(ca.amount,2), ' (', DATE_FORMAT(ca.date_given,'%b %d'), ')') ORDER BY ca.date_given SEPARATOR ', ') as breakdown
+        FROM cash_advances ca
+        WHERE ca.status = 'pending'
+        GROUP BY ca.employee_id
+    ");
+    if ($r) {
+        while ($row = $r->fetch_assoc()) {
+            $cash_advances[$row['employee_id']] = [
+                'total'     => (float)$row['total'],
+                'breakdown' => $row['breakdown']
+            ];
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,18 +66,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $emp_data      = $emp_r->fetch_assoc();
         $daily_rate    = (float)$emp_data['daily_rate'];
         $basic_pay     = $daily_rate * $days_worked;
-        $ot_pay        = $ot_hours * 150;
+        $ot_pay        = $ot_hours * $setting_ot_rate;
         $absent_deduct = $daily_rate * $absent_days;
-        $late_deduct   = $late_minutes * 2.5;
+        $late_deduct   = max(0, $late_minutes - $setting_grace) * $setting_late_rate;
         $gross_pay     = $basic_pay + $ot_pay - $absent_deduct - $late_deduct;
 
         $gov_sss = $apply_gov ? $sss : 0;
         $gov_ph  = $apply_gov ? $philhealth : 0;
         $gov_pi  = $apply_gov ? $pagibig : 0;
-        $ca      = isset($cash_advances[$employee_id]) ? (float)$cash_advances[$employee_id] : 0;
+        $ca      = isset($cash_advances[$employee_id]) ? (float)$cash_advances[$employee_id]['total'] : 0;
 
         $total_deductions = $gov_sss + $gov_ph + $gov_pi + $ca + $other_deduct;
-        $net_pay = $gross_pay - $total_deductions;
+        $net_pay          = $gross_pay - $total_deductions;
 
         $conn->query("CREATE TABLE IF NOT EXISTS payroll_entries (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -112,7 +139,7 @@ $conn->close();
     <title>SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/process.css">
+    <link rel="stylesheet" href="../srapayroll/css/process.css">
 </head>
 <body>
 
@@ -202,11 +229,11 @@ $conn->close();
                     <div class="section-title"><i class="fas fa-sliders-h"></i> Adjustments</div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Late <span class="hint">minutes · ₱2.5/min</span></label>
+                            <label>Late <span class="hint" id="lateHint">minutes · ₱<?= $setting_late_rate ?>/min</span></label>
                             <input type="number" class="fc" name="late_minutes" id="lateMinutes" min="0" step="1" placeholder="0">
                         </div>
                         <div class="form-group">
-                            <label>Overtime <span class="hint">hours · ₱150/hr</span></label>
+                            <label>Overtime <span class="hint">hours · ₱<?= $setting_ot_rate ?>/hr</span></label>
                             <input type="number" class="fc" name="ot_hours" id="otHours" min="0" step="0.5" placeholder="0">
                         </div>
                     </div>
@@ -223,9 +250,9 @@ $conn->close();
                         <label class="toggle"><input type="checkbox" name="apply_gov" id="applyGov"><span class="slider"></span></label>
                     </div>
                     <div class="gov-fields" id="govFields">
-                        <div class="gf-group"><label>SSS</label><input type="number" class="fc" name="sss" id="sssInput" value="0" min="0" step="0.01"></div>
-                        <div class="gf-group"><label>PhilHealth</label><input type="number" class="fc" name="philhealth" id="philhealthInput" value="0" min="0" step="0.01"></div>
-                        <div class="gf-group"><label>Pag-IBIG</label><input type="number" class="fc" name="pagibig" id="pagibigInput" value="0" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>SSS</label><input type="number" class="fc" name="sss" id="sssInput" value="<?= $setting_sss ?>" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>PhilHealth</label><input type="number" class="fc" name="philhealth" id="philhealthInput" value="<?= $setting_philhealth ?>" min="0" step="0.01"></div>
+                        <div class="gf-group"><label>Pag-IBIG</label><input type="number" class="fc" name="pagibig" id="pagibigInput" value="<?= $setting_pagibig ?>" min="0" step="0.01"></div>
                     </div>
 
                     <div class="section-title"><i class="fas fa-comment-alt"></i> Remarks</div>
@@ -284,6 +311,14 @@ $conn->close();
 <script>
 const EMP = <?php echo json_encode(array_column($employees, null, 'id')); ?>;
 const CA  = <?php echo json_encode($cash_advances); ?>;
+const SETTINGS = <?php echo json_encode([
+    'late_rate'  => $setting_late_rate,
+    'ot_rate'    => $setting_ot_rate,
+    'grace'      => $setting_grace,
+    'sss'        => $setting_sss,
+    'philhealth' => $setting_philhealth,
+    'pagibig'    => $setting_pagibig,
+]); ?>;
 
 document.getElementById('headerDate').textContent =
     new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -315,15 +350,16 @@ function compute() {
     const ot     = parseFloat(document.getElementById('otHours').value)         || 0;
     const other  = parseFloat(document.getElementById('otherDeductions').value) || 0;
     const gov    = document.getElementById('applyGov').checked;
-    const sss    = gov ? (parseFloat(document.getElementById('sssInput').value)        || 0) : 0;
-    const ph     = gov ? (parseFloat(document.getElementById('philhealthInput').value)  || 0) : 0;
-    const pi     = gov ? (parseFloat(document.getElementById('pagibigInput').value)     || 0) : 0;
-    const ca     = id  ? (parseFloat(CA[id]) || 0) : 0;
+    const sss    = gov ? (parseFloat(document.getElementById('sssInput').value)       || 0) : 0;
+    const ph     = gov ? (parseFloat(document.getElementById('philhealthInput').value) || 0) : 0;
+    const pi     = gov ? (parseFloat(document.getElementById('pagibigInput').value)    || 0) : 0;
+    const caObj  = id ? CA[id] : null;
+    const ca     = caObj ? caObj.total : 0;
 
     const basic   = rate * days;
-    const otPay   = ot * 150;
+    const otPay   = ot * SETTINGS.ot_rate;
     const absDed  = rate * absent;
-    const lateDed = late * 2.5;
+    const lateDed = Math.max(0, late - SETTINGS.grace) * SETTINGS.late_rate;
     const gross   = basic + otPay - absDed - lateDed;
     const totDed  = sss + ph + pi + ca + other;
     const net     = gross - totDed;
@@ -340,7 +376,9 @@ function compute() {
     document.getElementById('cSss').textContent   = p(sss);
     document.getElementById('cPh').textContent    = p(ph);
     document.getElementById('cPi').textContent    = p(pi);
-    document.getElementById('cCa').textContent    = p(ca);
+    const caEl = document.getElementById('cCa');
+    caEl.textContent = p(ca);
+    caEl.title = caObj ? (caObj.breakdown || '') : '';
     document.getElementById('cOther').textContent = p(other);
     document.getElementById('cTotal').textContent = p(totDed);
     document.getElementById('cNet').textContent   =
@@ -383,12 +421,12 @@ async function fetchAttendanceSummary(empId) {
             return;
         }
 
-        document.getElementById('dateFrom').value      = data.date_from;
-        document.getElementById('dateTo').value        = data.date_to;
-        document.getElementById('daysWorked').value    = data.days_worked;
-        document.getElementById('absentDays').value    = data.absent_days;
-        document.getElementById('lateMinutes').value   = data.late_minutes;
-        document.getElementById('otHours').value       = data.ot_hours;
+        document.getElementById('dateFrom').value    = data.date_from;
+        document.getElementById('dateTo').value      = data.date_to;
+        document.getElementById('daysWorked').value  = data.days_worked;
+        document.getElementById('absentDays').value  = data.absent_days;
+        document.getElementById('lateMinutes').value = data.late_minutes;
+        document.getElementById('otHours').value     = data.ot_hours;
 
         banner.className   = 'fetch-banner success';
         icon.className     = 'fas fa-check-circle fetch-icon';
@@ -442,5 +480,4 @@ document.getElementById('applyGov').addEventListener('change', function () {
 compute();
 </script>
 </body>
-
 </html>
