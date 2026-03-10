@@ -34,8 +34,6 @@ function addDays(d, n) {
     return r;
 }
 
-// FIXED: use local year/month/date instead of toISOString() which shifts to UTC
-// toISOString() on a Philippine machine returns the previous day (UTC-8hrs)
 function fmtDate(d) {
     const y  = d.getFullYear();
     const m  = String(d.getMonth() + 1).padStart(2, '0');
@@ -276,21 +274,21 @@ function buildCard(emp) {
         return `<th${cls}>In</th><th${cls}>Out</th>`;
     }).join('');
 
-const tds = dates.map(d => {
-    const k     = fmtDate(d);
-    const r     = (attData[emp.id] || {})[k] || {};
-    const sat   = d.getDay() === 6, sc = sat ? ' col-sat' : '';
-    const today = new Date(); today.setHours(0,0,0,0);
-    const isPastWeekday = d < today;
-    const absentCls = (!r.in && !r.out && isPastWeekday) ? ' col-absent' : '';
-    return `
-        <td class="day-sep${sc}${absentCls}">
-            <input type="time" class="time-inp${r.in  ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="in"  value="${r.in  || ''}">
-        </td>
-        <td class="${sc}${absentCls}">
-            <input type="time" class="time-inp${r.out ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="out" value="${r.out || ''}">
-        </td>`;
-}).join('');
+    const tds = dates.map(d => {
+        const k     = fmtDate(d);
+        const r     = (attData[emp.id] || {})[k] || {};
+        const sat   = d.getDay() === 6, sc = sat ? ' col-sat' : '';
+        const today = new Date(); today.setHours(0,0,0,0);
+        const isPastWeekday = d < today;
+        const absentCls = (!r.in && !r.out && isPastWeekday) ? ' col-absent' : '';
+        return `
+            <td class="day-sep${sc}${absentCls}">
+                <input type="time" class="time-inp${r.in  ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="in"  value="${r.in  || ''}">
+            </td>
+            <td class="${sc}${absentCls}">
+                <input type="time" class="time-inp${r.out ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="out" value="${r.out || ''}">
+            </td>`;
+    }).join('');
 
     const deptIcon     = emp.department === 'Field' ? '<i class="fas fa-hard-hat" style="font-size:9px;margin-right:3px"></i>' : '<i class="fas fa-building" style="font-size:9px;margin-right:3px"></i>';
     const empIdDisplay = emp.employee_id ? emp.employee_id : '#' + String(emp.id).padStart(3, '0');
@@ -441,6 +439,7 @@ function openAdd() {
     editTargetId = null;
     document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Add Employee';
     clearModal();
+    document.querySelectorAll('.edit-hidden').forEach(el => el.style.display = '');
     document.getElementById('empModal').classList.add('open');
     setTimeout(() => document.getElementById('fEmpId').focus(), 100);
 }
@@ -450,13 +449,9 @@ function openEdit(id, e) {
     editTargetId = id;
     const emp = employees.find(x => x.id == id);
     document.getElementById('modalTitle').innerHTML = '<i class="fas fa-pen"></i> Edit Employee';
-    document.getElementById('fEmpId').value     = emp.employee_id     || '';
-    document.getElementById('fName').value      = emp.name            || '';
-    document.getElementById('fPhone').value     = emp.phone           || '';
-    document.getElementById('fDept').value      = emp.department      || '';
-    document.getElementById('fPosition').value  = emp.position        || '';
-    document.getElementById('fEmpType').value   = emp.employment_type || 'Full Time';
-    document.getElementById('fHireDate').value  = emp.hire_date       || '';
+    document.getElementById('fEmpId').value = emp.employee_id || '';
+    document.getElementById('fName').value  = emp.name        || '';
+    document.querySelectorAll('.edit-hidden').forEach(el => el.style.display = 'none');
     document.getElementById('empModal').classList.add('open');
     setTimeout(() => document.getElementById('fEmpId').focus(), 100);
 }
@@ -470,14 +465,17 @@ async function saveEmployee() {
     const employment_type = document.getElementById('fEmpType').value;
     const hire_date       = document.getElementById('fHireDate').value;
 
-    if (!employee_id) { document.getElementById('fEmpId').focus();   showToast('Employee ID is required.');  return; }
-    if (!name)        { document.getElementById('fName').focus();     showToast('Full name is required.');    return; }
-    if (!dept)        { document.getElementById('fDept').focus();     showToast('Department is required.');   return; }
-    if (!position)    { document.getElementById('fPosition').focus(); showToast('Position is required.');     return; }
+    if (!employee_id) { document.getElementById('fEmpId').focus(); showToast('Employee ID is required.'); return; }
+    if (!name)        { document.getElementById('fName').focus();  showToast('Full name is required.');   return; }
+
+    if (!editTargetId) {
+        if (!dept)     { document.getElementById('fDept').focus();     showToast('Department is required.'); return; }
+        if (!position) { document.getElementById('fPosition').focus(); showToast('Position is required.');  return; }
+    }
 
     let res;
     if (editTargetId) {
-        res = await apiPost('edit_employee', { id: editTargetId, employee_id, name, phone, dept, position, employment_type, hire_date });
+        res = await apiPost('edit_employee', { id: editTargetId, employee_id, name });
     } else {
         const color = COLORS[Math.floor(Math.random() * COLORS.length)];
         res = await apiPost('add_employee', { employee_id, name, phone, dept, position, employment_type, hire_date, color });
@@ -553,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('empModal').onclick      = e => { if (e.target === document.getElementById('empModal')) document.getElementById('empModal').classList.remove('open'); };
 
     document.getElementById('fEmpId').addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('fName').focus(); });
-    document.getElementById('fName').addEventListener('keydown',     e => { if (e.key === 'Enter') document.getElementById('fPhone').focus(); });
+    document.getElementById('fName').addEventListener('keydown',     e => { if (e.key === 'Enter') document.getElementById('fPosition').focus(); });
     document.getElementById('fPosition').addEventListener('keydown', e => { if (e.key === 'Enter') saveEmployee(); });
 
     document.getElementById('confirmOverlay').onclick   = e => { if (e.target === document.getElementById('confirmOverlay')) document.getElementById('confirmOverlay').classList.remove('open'); };
