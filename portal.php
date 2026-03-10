@@ -188,9 +188,9 @@ function canAccess($key, $perms) {
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Manage employee informations, departments, positions &amp; records.</p>
-                    <a href="sraemployee/index"
+                    <a href="srainfo/index"
                        class="system-btn"
-                       data-navigate="sraemployee/index"
+                       data-navigate="srainfo/index"
                        data-room-name="Employee Information">
                         Access Employee Info <i class="fas fa-arrow-right"></i>
                     </a>
@@ -214,3 +214,4 @@ function canAccess($key, $perms) {
     <script src="js/dropdown.js"></script>
 </body>
 </html>
+
