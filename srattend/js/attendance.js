@@ -1,6 +1,6 @@
 const API = '../srattend/attendance.php';
-const WORK_START_FIELD_MIN  = 7  * 60 + 10;
-const WORK_START_OFFICE_MIN = 8  * 60 + 10;
+const WORK_START_FIELD_MIN  = 7  * 60;
+const WORK_START_OFFICE_MIN = 8  * 60;
 const WORK_END_MIN          = 17 * 60;
 
 let employees         = [];
@@ -20,7 +20,7 @@ const COLORS = [
 ];
 
 function getMonday(d) {
-    const c   = new Date(d);
+    const c = new Date(d);
     const day = c.getDay();
     const diff = (day === 0) ? -6 : 1 - day;
     c.setDate(c.getDate() + diff);
@@ -41,8 +41,8 @@ function fmtDate(d) {
     return `${y}-${m}-${dd}`;
 }
 
-function fmtDisp(d)     { return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }); }
-function toMin(t)       { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function fmtDisp(d) { return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }); }
+function toMin(t)   { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function minToHM(m) {
     if (m === null || isNaN(m) || m <= 0) return '—';
     const h = Math.floor(m / 60), min = m % 60;
@@ -66,15 +66,11 @@ function computeTotals(empId) {
     const emp   = employees.find(e => e.id == empId);
     const dept  = emp ? emp.department : 'Office';
     const dates = getWeekDates();
-    const today = new Date(); today.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     let late = 0, under = 0, hrs = 0, present = 0, absent = 0;
     dates.forEach(d => {
         const k = fmtDate(d), r = (attData[empId] || {})[k] || {};
-        if (r.in || r.out) {
-            present++;
-        } else if (d < today) {
-            absent++;
-        }
+        if (r.in || r.out) { present++; } else if (d < today) { absent++; }
         late  += calcLate(r.in, dept);
         under += calcUnder(r.out);
         hrs   += calcHrs(r.in, r.out);
@@ -145,8 +141,6 @@ async function loadWeekData() {
         employees = Array.isArray(emps) ? emps : [];
         attData   = (att && typeof att === 'object') ? att : {};
         otData    = (ot  && typeof ot  === 'object') ? ot  : {};
-
-        _seedSaveCache();
     } catch (e) {
         console.error('loadWeekData error:', e);
         employees = [];
@@ -155,10 +149,16 @@ async function loadWeekData() {
     renderAll(document.getElementById('searchInput').value);
 }
 
-async function saveAttendance(empId, date, type, value) {
-    if (!attData[empId])       attData[empId]       = {};
-    if (!attData[empId][date]) attData[empId][date] = {};
-    attData[empId][date][type] = value || null;
+async function saveField(empId, date, type, value) {
+    empId = parseInt(empId);
+    if (!attData[empId])        attData[empId]       = {};
+    if (!attData[empId][date])  attData[empId][date] = {};
+
+    const prev = attData[empId][date][type] || null;
+    const next = value || null;
+    if (prev === next) return;
+
+    attData[empId][date][type] = next;
 
     const payload = {
         emp_id:   empId,
@@ -171,9 +171,57 @@ async function saveAttendance(empId, date, type, value) {
     if (!res || !res.success) {
         console.error('Save failed:', empId, date, type, res);
         showToast('Save failed — check connection.');
+        attData[empId][date][type] = prev;
     }
     refreshStats(empId);
 }
+
+const _pendingTimers = {};
+
+function queueSave(input) {
+    if (weekNavigating) return;
+    const { emp, date, t: type } = input.dataset;
+    const value = input.value;
+
+    const isComplete = value === '' || /^\d{2}:\d{2}$/.test(value);
+    if (!isComplete) return;
+
+    const key = `${emp}_${date}_${type}`;
+    clearTimeout(_pendingTimers[key]);
+    _pendingTimers[key] = setTimeout(() => {
+        input.classList.toggle('has-val', !!value);
+        saveField(emp, date, type, value);
+    }, 300);
+}
+
+document.addEventListener('input', e => {
+    if (e.target.classList.contains('time-inp')) queueSave(e.target);
+});
+
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.classList.contains('time-inp')) {
+        if (weekNavigating) return;
+        const { emp, date, t: type } = t.dataset;
+        const key = `${emp}_${date}_${type}`;
+        clearTimeout(_pendingTimers[key]);
+        t.classList.toggle('has-val', !!t.value);
+        saveField(emp, date, type, t.value);
+    }
+    if (t.classList.contains('ot-inp')) {
+        saveOvertime(parseInt(t.dataset.emp), t.dataset.ot, t.value);
+    }
+});
+
+document.addEventListener('blur', e => {
+    const t = e.target;
+    if (!t.classList.contains('time-inp') || weekNavigating) return;
+    const { emp, date, t: type } = t.dataset;
+    const key = `${emp}_${date}_${type}`;
+    clearTimeout(_pendingTimers[key]);
+    t.classList.toggle('has-val', !!t.value);
+    saveField(emp, date, type, t.value);
+}, true);
 
 async function saveOvertime(empId, field, value) {
     if (!otData[empId]) otData[empId] = { m: 0, a: 0 };
@@ -186,78 +234,6 @@ async function saveOvertime(empId, field, value) {
     });
     refreshStats(empId);
 }
-
-const _saveCache  = {};
-const _saveTimers = {};
-
-function _seedSaveCache() {
-    Object.keys(_saveCache).forEach(k => delete _saveCache[k]);
-    const weekDates = getWeekDates();
-    employees.forEach(emp => {
-        weekDates.forEach(d => {
-            const date = fmtDate(d);
-            const r    = (attData[emp.id] || {})[date] || {};
-            _saveCache[`${emp.id}_${date}_in`]  = r.in  || '';
-            _saveCache[`${emp.id}_${date}_out`] = r.out || '';
-        });
-    });
-}
-
-function triggerSave(t) {
-    if (!t.classList.contains('time-inp') || weekNavigating) return;
-    const empId  = t.dataset.emp;
-    const date   = t.dataset.date;
-    const type   = t.dataset.t;
-    const key    = `${empId}_${date}_${type}`;
-    const oldVal = (key in _saveCache) ? _saveCache[key] : '';
-    if (oldVal === t.value) return;
-    _saveCache[key] = t.value;
-    t.classList.toggle('has-val', !!t.value);
-    clearTimeout(_saveTimers[key]);
-    _saveTimers[key] = setTimeout(() => {
-        saveAttendance(parseInt(empId), date, type, t.value);
-    }, 400);
-}
-
-document.addEventListener('change', e => {
-    const t = e.target;
-    if (t.classList.contains('time-inp')) {
-        if (weekNavigating) return;
-        const empId  = t.dataset.emp;
-        const date   = t.dataset.date;
-        const type   = t.dataset.t;
-        const key    = `${empId}_${date}_${type}`;
-        const oldVal = (key in _saveCache) ? _saveCache[key] : '';
-        if (oldVal === t.value) return;
-        _saveCache[key] = t.value;
-        t.classList.toggle('has-val', !!t.value);
-        clearTimeout(_saveTimers[key]);
-        saveAttendance(parseInt(empId), date, type, t.value);
-    }
-    if (t.classList.contains('ot-inp')) {
-        saveOvertime(parseInt(t.dataset.emp), t.dataset.ot, t.value);
-    }
-});
-
-document.addEventListener('input', e => {
-    const t = e.target;
-    if (t.classList.contains('time-inp')) triggerSave(t);
-});
-
-document.addEventListener('blur', e => {
-    const t = e.target;
-    if (!t.classList.contains('time-inp') || weekNavigating) return;
-    const empId  = t.dataset.emp;
-    const date   = t.dataset.date;
-    const type   = t.dataset.t;
-    const key    = `${empId}_${date}_${type}`;
-    const oldVal = (key in _saveCache) ? _saveCache[key] : '';
-    clearTimeout(_saveTimers[key]);
-    if (oldVal === t.value) return;
-    _saveCache[key] = t.value;
-    t.classList.toggle('has-val', !!t.value);
-    saveAttendance(parseInt(empId), date, type, t.value);
-}, true);
 
 function buildCard(emp) {
     const dates    = getWeekDates();
@@ -278,9 +254,8 @@ function buildCard(emp) {
         const k     = fmtDate(d);
         const r     = (attData[emp.id] || {})[k] || {};
         const sat   = d.getDay() === 6, sc = sat ? ' col-sat' : '';
-        const today = new Date(); today.setHours(0,0,0,0);
-        const isPastWeekday = d < today;
-        const absentCls = (!r.in && !r.out && isPastWeekday) ? ' col-absent' : '';
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const absentCls = (!r.in && !r.out && d < today) ? ' col-absent' : '';
         return `
             <td class="day-sep${sc}${absentCls}">
                 <input type="time" class="time-inp${r.in  ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="in"  value="${r.in  || ''}">
@@ -426,13 +401,13 @@ function refreshStats(empId) {
 }
 
 function clearModal() {
-    document.getElementById('fEmpId').value     = '';
-    document.getElementById('fName').value      = '';
-    document.getElementById('fPhone').value     = '';
-    document.getElementById('fDept').value      = '';
-    document.getElementById('fPosition').value  = '';
-    document.getElementById('fEmpType').value   = 'Full Time';
-    document.getElementById('fHireDate').value  = '';
+    document.getElementById('fEmpId').value    = '';
+    document.getElementById('fName').value     = '';
+    document.getElementById('fPhone').value    = '';
+    document.getElementById('fDept').value     = '';
+    document.getElementById('fPosition').value = '';
+    document.getElementById('fEmpType').value  = 'Full Time';
+    document.getElementById('fHireDate').value = '';
 }
 
 function openAdd() {
@@ -543,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('headerDate').textContent =
-        new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+        new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     document.getElementById('saveEmpBtn').onclick    = saveEmployee;
     document.getElementById('cancelEmpBtn').onclick  = () => document.getElementById('empModal').classList.remove('open');
