@@ -37,7 +37,6 @@ $recent = $conn->query("SELECT COUNT(*) as cnt FROM system_logs WHERE created_at
 
 $conn->close();
 
-// payroll intentionally excluded from all arrays below
 $system_labels = [
     'tool_room'     => 'Tool Room',
     'scheduling'    => 'Scheduling',
@@ -127,7 +126,6 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
         .action-text { font-weight: 600; color: #1e293b; }
         .desc-text { color: #64748b; font-size: 13px; margin-top: 2px; }
         .log-date { color: #64748b; font-size: 13px; white-space: nowrap; }
-        .log-ip { font-family: monospace; font-size: 12px; color: #94a3b8; }
 
         .empty-logs { text-align: center; padding: 60px 20px; color: #94a3b8; }
         .empty-logs i { font-size: 48px; margin-bottom: 14px; display: block; }
@@ -271,7 +269,6 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
                         <th>User</th>
                         <th>System</th>
                         <th>Action / Description</th>
-                        <th>IP Address</th>
                         <th>Date & Time</th>
                     </tr>
                 </thead>
@@ -308,7 +305,6 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
                         <div class="desc-text"><?php echo htmlspecialchars($log['description']); ?></div>
                         <?php endif; ?>
                     </td>
-                    <td class="log-ip"><?php echo htmlspecialchars($log['ip_address'] ?? '—'); ?></td>
                     <td class="log-date">
                         <?php echo date('M d, Y', strtotime($log['created_at'])); ?><br>
                         <small><?php echo date('h:i:s A', strtotime($log['created_at'])); ?></small>
