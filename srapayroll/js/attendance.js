@@ -1,6 +1,6 @@
 const API               = 'attendance_api.php';
-const WORK_START_FIELD  = 7  * 60 + 10;
-const WORK_START_OFFICE = 8  * 60 + 10;
+const WORK_START_FIELD  = 7  * 60;
+const WORK_START_OFFICE = 8  * 60;
 const WORK_END          = 17 * 60;
 
 let employees     = [];
