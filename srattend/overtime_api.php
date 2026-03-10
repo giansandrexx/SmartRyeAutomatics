@@ -10,9 +10,14 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once "../config.php";
+require_once "../log_helper.php";
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
+
+$uid   = $_SESSION['user_id'];                    
+$uname = $_SESSION['username']  ?? 'unknown';
+$uful  = $_SESSION['full_name'] ?? 'Unknown User'; 
 
 if ($method === 'GET') {
 
@@ -87,6 +92,9 @@ if ($method === 'POST') {
 
         if (!$emp_id || !$trip_date) { echo json_encode(['success' => false, 'message' => 'Missing fields']); exit; }
 
+        $empRow = $conn->query("SELECT name FROM employees WHERE id=$emp_id")->fetch_assoc(); // ← ADDED
+        $empName = $empRow['name'] ?? "Employee #$emp_id"; // ← ADDED
+
         $stmt = $conn->prepare("
             INSERT INTO overtime_trips
                 (emp_id, trip_date, location, depart_office, arrive_site, depart_site, arrive_office, is_eligible, ot_hours, ot_minutes, notes)
@@ -107,7 +115,10 @@ if ($method === 'POST') {
             $depart_office, $arrive_site, $depart_site, $arrive_office,
             $is_eligible, $ot_hours, $ot_minutes, $notes
         );
-        $stmt->execute();
+        if ($stmt->execute()) {
+            logActivity($conn, $uid, $uname, $uful, 'attendance', 'Saved Overtime Trip',
+                "Employee: $empName | Date: $trip_date | Location: $location | OT: {$ot_hours}h {$ot_minutes}m");
+        }
         $stmt->close();
         echo json_encode(['success' => true]);
         exit;
@@ -117,9 +128,16 @@ if ($method === 'POST') {
         $emp_id    = (int)($body['emp_id']    ?? 0);
         $trip_date = $body['trip_date'] ?? '';
         if (!$emp_id || !$trip_date) { echo json_encode(['success' => false, 'message' => 'Missing fields']); exit; }
+
+        $empRow  = $conn->query("SELECT name FROM employees WHERE id=$emp_id")->fetch_assoc();
+        $empName = $empRow['name'] ?? "Employee #$emp_id";
+
         $stmt = $conn->prepare("DELETE FROM overtime_trips WHERE emp_id=? AND trip_date=?");
         $stmt->bind_param("is", $emp_id, $trip_date);
-        $stmt->execute();
+        if ($stmt->execute()) { 
+            logActivity($conn, $uid, $uname, $uful, 'attendance', 'Deleted Overtime Trip',
+                "Employee: $empName | Date: $trip_date");
+        }
         $stmt->close();
         echo json_encode(['success' => true]);
         exit;
