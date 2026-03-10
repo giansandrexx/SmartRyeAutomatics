@@ -187,17 +187,11 @@ if ($method === 'POST') {
     }
 
     if ($action === 'edit_employee') {
-        $id              = (int)($body['id']             ?? 0);
-        $employee_id     = trim($body['employee_id']     ?? '');
-        $name            = trim($body['name']            ?? '');
-        $dept            = trim($body['dept']            ?? '');
-        $phone           = trim($body['phone']           ?? '');
-        $position        = trim($body['position']        ?? '');
-        $employment_type = $body['employment_type']      ?? 'Full Time';
-        $daily_rate      = (float)($body['daily_rate']   ?? 0);
-        $hire_date       = !empty($body['hire_date'])    ? $body['hire_date'] : null;
+        $id          = (int)($body['id']         ?? 0);
+        $employee_id = trim($body['employee_id'] ?? '');
+        $name        = trim($body['name']        ?? '');
 
-        if (!$id || !$employee_id || !$name || !$dept || !$position) {
+        if (!$id || !$employee_id || !$name) {
             echo json_encode(['success' => false, 'message' => 'Missing required fields']); exit;
         }
 
@@ -208,8 +202,8 @@ if ($method === 'POST') {
         if ($chk->num_rows > 0) { echo json_encode(['success' => false, 'message' => 'Employee ID already in use']); exit; }
         $chk->close();
 
-        $stmt = $conn->prepare("UPDATE employees SET employee_id=?, name=?, department=?, phone=?, position=?, employment_type=?, daily_rate=?, hire_date=? WHERE id=?");
-        $stmt->bind_param("ssssssdsi", $employee_id, $name, $dept, $phone, $position, $employment_type, $daily_rate, $hire_date, $id);
+        $stmt = $conn->prepare("UPDATE employees SET employee_id=?, name=? WHERE id=?");
+        $stmt->bind_param("ssi", $employee_id, $name, $id);
         $stmt->execute();
         $stmt->close();
         echo json_encode(['success' => true]);
