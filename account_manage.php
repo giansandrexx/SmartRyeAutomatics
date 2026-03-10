@@ -131,7 +131,7 @@ $conn->close();
     <link rel="stylesheet" href="sratool/css/consumables.css">
     <link rel="stylesheet" href="sratool/css/dashboard.css">
     <link rel="stylesheet" href="sratool/css/portal.css">
-    <link rel="stylesheet" href="sratool/css/responsive.css">
+    <link rel="stylesheet" href="/smartryesystem/sratool/css/responsive.css">
 </head>
 <body>
 
@@ -243,6 +243,7 @@ $conn->close();
                     'attendance' => 'Attendance',
                     'payroll'    => 'Payroll',
                     'employee_info' => 'Employee Info',
+                    'system_logs' => 'System Logs',
                 ];
                 foreach ($users_data as $row):
                 ?>
@@ -392,6 +393,12 @@ $conn->close();
                             <input type="checkbox" name="systems[]" value="employee_info" id="sys_employee_info">
                             <span class="sys-icon"><i class="fas fa-id-card"></i></span>
                             <span class="sys-label">SRA Employee Information</span>
+                        </label>
+
+                        <label class="sys-check-item">
+                            <input type="checkbox" name="systems[]" value="system_logs" id="sys_system_logs">
+                            <span class="sys-icon"><i class="fas fa-clipboard-list"></i></span>
+                            <span class="sys-label">System Logs</span>
                         </label>
                     </div>
                 </div>
@@ -545,4 +552,3 @@ window.addEventListener('click', function (e) {
 </script>
 </body>
 </html>
-
