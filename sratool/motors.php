@@ -7,10 +7,15 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once "../config.php";
+require_once "../log_helper.php";
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+
+$uid   = $_SESSION['user_id'];
+$uname = $_SESSION['username']  ?? 'unknown';
+$uful  = $_SESSION['full_name'] ?? 'Unknown User';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -19,32 +24,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $serial_number = $conn->real_escape_string($_POST['serial_number']);
             $quantity      = (int)$_POST['quantity'];
             $sql = "INSERT INTO motors (motor_name, serial_number, quantity) VALUES ('$motor_name', '$serial_number', $quantity)";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Added Motor',
+                    "Added motor: \"$motor_name\" | Serial: $serial_number | Qty: $quantity");
+            }
 
         } elseif ($_POST['action'] === 'edit') {
             $id            = (int)$_POST['id'];
             $motor_name    = $conn->real_escape_string($_POST['motor_name']);
             $serial_number = $conn->real_escape_string($_POST['serial_number']);
             $quantity      = (int)$_POST['quantity'];
+            $old           = $conn->query("SELECT motor_name, quantity FROM motors WHERE id=$id")->fetch_assoc();
             $sql = "UPDATE motors SET motor_name='$motor_name', serial_number='$serial_number', quantity=$quantity WHERE id=$id";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Edited Motor',
+                    "Edited motor: \"{$old['motor_name']}\" → \"$motor_name\" | Qty: {$old['quantity']} → $quantity | Serial: $serial_number");
+            }
 
         } elseif ($_POST['action'] === 'delete') {
             $id  = (int)$_POST['id'];
+            $old = $conn->query("SELECT motor_name, quantity FROM motors WHERE id=$id")->fetch_assoc();
             $sql = "DELETE FROM motors WHERE id=$id";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Deleted Motor',
+                    "Deleted motor: \"{$old['motor_name']}\" (was {$old['quantity']} units)");
+            }
 
         } elseif ($_POST['action'] === 'adjust') {
             $id         = (int)$_POST['id'];
             $adjustment = (int)$_POST['adjustment'];
+            $old        = $conn->query("SELECT motor_name, quantity FROM motors WHERE id=$id")->fetch_assoc();
 
             $sql = "UPDATE motors SET quantity = quantity + $adjustment WHERE id=$id";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                $newQty    = $old['quantity'] + $adjustment;
+                $direction = $adjustment >= 0 ? "+$adjustment" : "$adjustment";
+                $extra     = '';
 
-            if ($adjustment > 0 && !empty($_POST['new_serial_range'])) {
-                $new_range = $conn->real_escape_string(trim($_POST['new_serial_range']));
-                $sql2 = "UPDATE motors SET serial_number = CONCAT(serial_number, ',', '$new_range') WHERE id=$id";
-                $conn->query($sql2);
+                if ($adjustment > 0 && !empty($_POST['new_serial_range'])) {
+                    $new_range = $conn->real_escape_string(trim($_POST['new_serial_range']));
+                    $sql2 = "UPDATE motors SET serial_number = CONCAT(serial_number, ',', '$new_range') WHERE id=$id";
+                    $conn->query($sql2);
+                    $extra = " | New serial range: $new_range";
+                }
+
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Adjusted Motor Stock',
+                    "Adjusted \"{$old['motor_name']}\": {$old['quantity']} → $newQty ($direction)$extra");
             }
         }
         header("Location: motors.php");
