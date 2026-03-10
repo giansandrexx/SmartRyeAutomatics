@@ -201,7 +201,7 @@ function canAccess($key, $perms) {
             <?php if ($user_role === 'moderator'): ?>
 <div class="system-card">
     <div class="system-card-header">
-        <div class="system-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+        <div class="system-icon">
             <i class="fas fa-clipboard-list"></i>
         </div>
         <h3>System Logs</h3>
@@ -231,3 +231,4 @@ function canAccess($key, $perms) {
     <script src="js/dropdown.js"></script>
 </body>
 </html>
+
