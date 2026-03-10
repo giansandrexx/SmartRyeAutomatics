@@ -248,12 +248,12 @@ function buildCard(emp) {
     const dayHeaders = dates.map((d, i) => {
         const sat = d.getDay() === 6;
         return `<th colspan="2" style="${sat ? 'background:linear-gradient(135deg,#263238,#37474f)' : ''}">${dayNames[i]}<div class="day-date">${fmtDisp(d)}</div></th>`;
-    }).join('');
+    }).join('') + `<th colspan="2" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)">Overtime<div class="day-date">hrs</div></th>`;
 
     const subHeaders = dates.map(d => {
         const sat = d.getDay() === 6, cls = sat ? ' class="col-sat"' : '';
         return `<th${cls}>In</th><th${cls}>Out</th>`;
-    }).join('');
+    }).join('') + `<th class="col-ot">Morning</th><th class="col-ot">Afternoon</th>`;
 
     const tds = dates.map(d => {
         const k     = fmtDate(d);
@@ -268,49 +268,48 @@ function buildCard(emp) {
             <td class="${sc}${absentCls}">
                 <input type="time" class="time-inp${r.out ? ' has-val' : ''}" data-emp="${emp.id}" data-date="${k}" data-t="out" value="${r.out || ''}">
             </td>`;
-    }).join('');
+    }).join('') + `
+        <td class="col-ot">
+            <input type="number" class="ot-inp" step="0.5" min="0" max="12" data-emp="${emp.id}" data-ot="m" value="${t.otM}" placeholder="0">
+        </td>
+        <td class="col-ot">
+            <input type="number" class="ot-inp" step="0.5" min="0" max="12" data-emp="${emp.id}" data-ot="a" value="${t.otA}" placeholder="0">
+        </td>`;
 
     const deptIcon     = emp.department === 'Field' ? '<i class="fas fa-hard-hat" style="font-size:9px;margin-right:3px"></i>' : '<i class="fas fa-building" style="font-size:9px;margin-right:3px"></i>';
     const empIdDisplay = emp.employee_id ? emp.employee_id : '#' + String(emp.id).padStart(3, '0');
 
     const strip = `
-        <div class="tstrip-cell highlight-late">
-            <div class="tstrip-label">Late</div>
-            <div class="tstrip-val late-c" id="v-late-${emp.id}">${minToHM(t.late)}</div>
-            <div class="tstrip-sub">total late</div>
-        </div>
-        <div class="tstrip-cell highlight-under">
-            <div class="tstrip-label">Undertime</div>
-            <div class="tstrip-val under-c" id="v-under-${emp.id}">${minToHM(t.under)}</div>
-            <div class="tstrip-sub">left early</div>
-        </div>
-        <div class="tstrip-cell">
-            <div class="tstrip-label">Present</div>
-            <div class="tstrip-val total-c" id="v-present-${emp.id}">${t.present}d</div>
-            <div class="tstrip-sub">days</div>
-        </div>
-        <div class="tstrip-cell">
-            <div class="tstrip-label">Absent</div>
-            <div class="tstrip-val" style="color:var(--red-700)" id="v-absent-${emp.id}">${t.absent}d</div>
-            <div class="tstrip-sub">days</div>
-        </div>
-        <div class="tstrip-cell">
-            <div class="tstrip-label">Total Hours</div>
-            <div class="tstrip-val total-c" id="v-hrs-${emp.id}">${t.hrs.toFixed(1)}h</div>
-            <div class="tstrip-sub">worked</div>
-        </div>
-        <div class="tstrip-cell highlight-ot">
-            <div class="tstrip-label">OT Morning</div>
-            <input type="number" class="ot-inp" step="0.5" min="0" max="12" data-emp="${emp.id}" data-ot="m" value="${t.otM}" placeholder="0">
-        </div>
-        <div class="tstrip-cell highlight-ot">
-            <div class="tstrip-label">OT Afternoon</div>
-            <input type="number" class="ot-inp" step="0.5" min="0" max="12" data-emp="${emp.id}" data-ot="a" value="${t.otA}" placeholder="0">
-        </div>
-        <div class="tstrip-cell highlight-ot" style="grid-column:span 2;border-top:2px solid var(--border);">
-            <div class="tstrip-label" style="font-size:11px">Total Overtime</div>
-            <div class="tstrip-val ot-c" style="font-size:20px;" id="v-ot-${emp.id}">${t.otTotal > 0 ? t.otTotal.toFixed(1) + 'h' : '—'}</div>
-        </div>`;
+    <div class="tstrip-cell highlight-late">
+        <div class="tstrip-label">Late</div>
+        <div class="tstrip-val late-c" id="v-late-${emp.id}">${minToHM(t.late)}</div>
+        <div class="tstrip-sub">total late</div>
+    </div>
+    <div class="tstrip-cell highlight-under">
+        <div class="tstrip-label">Undertime</div>
+        <div class="tstrip-val under-c" id="v-under-${emp.id}">${minToHM(t.under)}</div>
+        <div class="tstrip-sub">left early</div>
+    </div>
+    <div class="tstrip-cell highlight-ot">
+        <div class="tstrip-label">Total Overtime</div>
+        <div class="tstrip-val ot-c" id="v-ot-${emp.id}">${t.otTotal > 0 ? t.otTotal.toFixed(1) + 'h' : '—'}</div>
+        <div class="tstrip-sub">hours</div>
+    </div>
+    <div class="tstrip-cell">
+        <div class="tstrip-label">Present</div>
+        <div class="tstrip-val total-c" id="v-present-${emp.id}">${t.present}d</div>
+        <div class="tstrip-sub">days</div>
+    </div>
+    <div class="tstrip-cell">
+        <div class="tstrip-label">Absent</div>
+        <div class="tstrip-val" style="color:var(--red-700)" id="v-absent-${emp.id}">${t.absent}d</div>
+        <div class="tstrip-sub">days</div>
+    </div>
+    <div class="tstrip-cell">
+        <div class="tstrip-label">Total Hours</div>
+        <div class="tstrip-val total-c" id="v-hrs-${emp.id}">${t.hrs.toFixed(1)}h</div>
+        <div class="tstrip-sub">worked</div>
+    </div>`;
 
     return `
     <div class="emp-card" id="card-${emp.id}" data-name="${emp.name.toLowerCase()}" data-dept="${(emp.department || '').toLowerCase()}">
@@ -330,8 +329,6 @@ function buildCard(emp) {
                 <div class="hstat absent"><div class="hstat-val" id="hs-abs-${emp.id}">${t.absent}d</div><div class="hstat-label">Absent</div></div>
             </div>
             <div class="emp-header-actions">
-                <button class="hdr-btn edit-btn" title="Edit"   onclick="openEdit(${emp.id}, event)"><i class="fas fa-pen"></i></button>
-                <button class="hdr-btn del-btn"  title="Remove" onclick="confirmDelete(${emp.id}, event)"><i class="fas fa-trash"></i></button>
                 <button class="hdr-btn toggle-btn" id="tbtn-${emp.id}"><i class="fas fa-chevron-down"></i></button>
             </div>
         </div>
@@ -405,93 +402,6 @@ function refreshStats(empId) {
     set(`hs-abs-${empId}`,    t.absent + 'd');
 }
 
-function clearModal() {
-    document.getElementById('fEmpId').value    = '';
-    document.getElementById('fName').value     = '';
-    document.getElementById('fPhone').value    = '';
-    document.getElementById('fDept').value     = '';
-    document.getElementById('fPosition').value = '';
-    document.getElementById('fEmpType').value  = 'Full Time';
-    document.getElementById('fHireDate').value = '';
-}
-
-function openAdd() {
-    editTargetId = null;
-    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Add Employee';
-    clearModal();
-    document.querySelectorAll('.edit-hidden').forEach(el => el.style.display = '');
-    document.getElementById('empModal').classList.add('open');
-    setTimeout(() => document.getElementById('fEmpId').focus(), 100);
-}
-
-function openEdit(id, e) {
-    e.stopPropagation();
-    editTargetId = id;
-    const emp = employees.find(x => x.id == id);
-    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-pen"></i> Edit Employee';
-    document.getElementById('fEmpId').value = emp.employee_id || '';
-    document.getElementById('fName').value  = emp.name        || '';
-    document.querySelectorAll('.edit-hidden').forEach(el => el.style.display = 'none');
-    document.getElementById('empModal').classList.add('open');
-    setTimeout(() => document.getElementById('fEmpId').focus(), 100);
-}
-
-async function saveEmployee() {
-    const employee_id     = document.getElementById('fEmpId').value.trim();
-    const name            = document.getElementById('fName').value.trim();
-    const phone           = document.getElementById('fPhone').value.trim();
-    const dept            = document.getElementById('fDept').value;
-    const position        = document.getElementById('fPosition').value.trim();
-    const employment_type = document.getElementById('fEmpType').value;
-    const hire_date       = document.getElementById('fHireDate').value;
-
-    if (!employee_id) { document.getElementById('fEmpId').focus(); showToast('Employee ID is required.'); return; }
-    if (!name)        { document.getElementById('fName').focus();  showToast('Full name is required.');   return; }
-
-    if (!editTargetId) {
-        if (!dept)     { document.getElementById('fDept').focus();     showToast('Department is required.'); return; }
-        if (!position) { document.getElementById('fPosition').focus(); showToast('Position is required.');  return; }
-    }
-
-    let res;
-    if (editTargetId) {
-        res = await apiPost('edit_employee', { id: editTargetId, employee_id, name });
-    } else {
-        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        res = await apiPost('add_employee', { employee_id, name, phone, dept, position, employment_type, hire_date, color });
-    }
-
-    if (res && !res.success) { showToast(res.message || 'Error saving employee.'); return; }
-    showToast(editTargetId ? 'Employee updated!' : 'Employee added!');
-    document.getElementById('empModal').classList.remove('open');
-    await loadWeekData();
-}
-
-function confirmDelete(id, e) {
-    e.stopPropagation();
-    deleteTargetId = id;
-    const emp = employees.find(x => x.id == id);
-    document.getElementById('confirmMsg').textContent = `Remove "${emp.name}" from the attendance sheet? This cannot be undone.`;
-    document.getElementById('confirmOverlay').classList.add('open');
-}
-
-async function doDelete() {
-    await apiPost('delete_employee', { id: deleteTargetId });
-    document.getElementById('confirmOverlay').classList.remove('open');
-    showToast('Employee removed.');
-    deleteTargetId = null;
-    await loadWeekData();
-}
-
-function goWeek(dir) {
-    weekNavigating = true;
-    currentWeekStart = addDays(new Date(currentWeekStart), dir * 7);
-    document.getElementById('weekLabel').textContent = weekLabel();
-    setTimeout(() => {
-        loadWeekData().then(() => { weekNavigating = false; });
-    }, 50);
-}
-
 function showToast(msg) {
     const t = document.getElementById('sra-toast');
     document.getElementById('toast-msg').textContent = msg;
@@ -506,7 +416,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('prevWeekBtn').onclick = () => goWeek(-1);
     document.getElementById('nextWeekBtn').onclick = () => goWeek(1);
     document.getElementById('searchInput').addEventListener('input', e => renderAll(e.target.value));
-    document.getElementById('addEmpBtn').onclick = openAdd;
 
     document.querySelectorAll('.dept-tab').forEach(btn => {
         btn.onclick = () => {
@@ -525,19 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('headerDate').textContent =
         new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-    document.getElementById('saveEmpBtn').onclick    = saveEmployee;
-    document.getElementById('cancelEmpBtn').onclick  = () => document.getElementById('empModal').classList.remove('open');
-    document.getElementById('modalCloseBtn').onclick = () => document.getElementById('empModal').classList.remove('open');
-    document.getElementById('empModal').onclick      = e => { if (e.target === document.getElementById('empModal')) document.getElementById('empModal').classList.remove('open'); };
-
-    document.getElementById('fEmpId').addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('fName').focus(); });
-    document.getElementById('fName').addEventListener('keydown',     e => { if (e.key === 'Enter') document.getElementById('fPosition').focus(); });
-    document.getElementById('fPosition').addEventListener('keydown', e => { if (e.key === 'Enter') saveEmployee(); });
-
-    document.getElementById('confirmOverlay').onclick   = e => { if (e.target === document.getElementById('confirmOverlay')) document.getElementById('confirmOverlay').classList.remove('open'); };
-    document.getElementById('confirmDeleteBtn').onclick = doDelete;
-    document.getElementById('cancelDeleteBtn').onclick  = () => document.getElementById('confirmOverlay').classList.remove('open');
-
     const dropBtn  = document.getElementById('userDropdownBtn');
     const dropMenu = document.getElementById('userDropdownMenu');
     if (dropBtn) {
@@ -545,6 +441,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', () => { dropMenu.classList.remove('open'); dropBtn.classList.remove('open'); });
     }
 });
+
+function goWeek(dir) {
+    weekNavigating = true;
+    currentWeekStart = addDays(new Date(currentWeekStart), dir * 7);
+    document.getElementById('weekLabel').textContent = weekLabel();
+    setTimeout(() => {
+        loadWeekData().then(() => { weekNavigating = false; });
+    }, 50);
+}
 
 (function () {
     const btn     = document.getElementById('mobileHamburgerBtn');
