@@ -101,7 +101,6 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
             <button class="btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export</button>
-            <button class="btn-add" id="addEmpBtn"><i class="fas fa-user-plus"></i> Add Employee</button>
         </div>
     </div>
 
@@ -202,7 +201,3 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 <script src="js/attendance.js"></script>
 </body>
 </html>
-</body>
-
-</html>
-
