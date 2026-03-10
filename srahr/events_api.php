@@ -12,8 +12,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../log_helper.php';
+require_once __DIR__ . '../config.php';
+require_once __DIR__ . '../log_helper.php';
 
 $method   = $_SERVER['REQUEST_METHOD'];
 $action   = $_GET['action'] ?? '';
@@ -282,3 +282,4 @@ switch ($method) {
         http_response_code(405);
         respond(['success' => false, 'message' => 'Method not allowed']);
 }
+
