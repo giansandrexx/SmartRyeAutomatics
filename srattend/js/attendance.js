@@ -59,7 +59,12 @@ function weekLabel() {
 }
 
 function calcLate(ti, dept)  { const m = toMin(ti); if (!m) return 0; const cut = dept === 'Field' ? WORK_START_FIELD_MIN : WORK_START_OFFICE_MIN; return Math.max(0, m - cut); }
-function calcUnder(to)       { const m = toMin(to); if (!m) return 0; return Math.max(0, WORK_END_MIN - m); }
+function calcUnder(to, dept) {
+    const m = toMin(to);
+    if (!m) return 0;
+    const cut = dept === 'Field' ? (16 * 60 + 50) : WORK_END_MIN;
+    return Math.max(0, cut - m);
+}
 function calcHrs(ti, to)     { const a = toMin(ti), b = toMin(to); if (!a || !b) return 0; return Math.max(0, (b - a) / 60); }
 
 function computeTotals(empId) {
@@ -72,7 +77,7 @@ function computeTotals(empId) {
         const k = fmtDate(d), r = (attData[empId] || {})[k] || {};
         if (r.in || r.out) { present++; } else if (d < today) { absent++; }
         late  += calcLate(r.in, dept);
-        under += calcUnder(r.out);
+        under += calcUnder(r.out, dept);
         hrs   += calcHrs(r.in, r.out);
     });
     const ot      = otData[empId] || { m: 0, a: 0 };
