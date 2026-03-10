@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $late_deduct   = ($hourly_rate / 60) * max(0, $late_minutes - $setting_grace);
         $gross_pay     = $basic_pay + $ot_pay - $late_deduct;
 
-        $gov_sss = $apply_gov ? $sss       : 0;
+        $gov_sss = $apply_gov ? $sss        : 0;
         $gov_ph  = $apply_gov ? $philhealth : 0;
         $gov_pi  = $apply_gov ? $pagibig    : 0;
         $ca      = isset($cash_advances[$employee_id]) ? (float)$cash_advances[$employee_id]['total'] : 0;
@@ -120,6 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $message      = "Payroll saved! Net Pay: ₱" . number_format($net_pay, 2);
             $message_type = 'success';
+
+            if ($ca > 0) {
+                $conn->query("UPDATE cash_advances SET status = 'deducted' WHERE employee_id = $employee_id AND status = 'pending'");
+            }
         } else {
             $message      = "Error: " . $conn->error;
             $message_type = 'error';
@@ -370,27 +374,27 @@ function compute() {
     const totDed  = sss + ph + pi + ca + other;
     const net     = gross - totDed;
 
-    document.getElementById('cRate').textContent    = p(rate);
-    document.getElementById('cHourly').textContent  = p(hourlyRate) + '/hr (' + hoursPerDay + 'h day)';
+    document.getElementById('cRate').textContent     = p(rate);
+    document.getElementById('cHourly').textContent   = p(hourlyRate) + '/hr (' + hoursPerDay + 'h day)';
     document.getElementById('cBasicLbl').textContent = 'Basic Pay (' + days + ' days)';
-    document.getElementById('cBasic').textContent   = p(basic);
-    document.getElementById('cOtLbl').textContent   = `Overtime Pay (${ot}h × 1.25)`;
-    document.getElementById('cOt').textContent      = p(otPay);
-    document.getElementById('cAbsent').textContent  = '– ' + p(absDed);
-    document.getElementById('cLateLbl').textContent = `Late (${late} min)`;
-    document.getElementById('cLate').textContent    = '– ' + p(lateDed);
-    document.getElementById('cGross').textContent   = p(gross);
+    document.getElementById('cBasic').textContent    = p(basic);
+    document.getElementById('cOtLbl').textContent    = `Overtime Pay (${ot}h × 1.25)`;
+    document.getElementById('cOt').textContent       = p(otPay);
+    document.getElementById('cAbsent').textContent   = '– ' + p(absDed);
+    document.getElementById('cLateLbl').textContent  = `Late (${late} min)`;
+    document.getElementById('cLate').textContent     = '– ' + p(lateDed);
+    document.getElementById('cGross').textContent    = p(gross);
     document.getElementById('govNoneTxt').style.display = gov ? 'none'  : 'block';
     document.getElementById('govApplied').style.display = gov ? 'block' : 'none';
-    document.getElementById('cSss').textContent    = p(sss);
-    document.getElementById('cPh').textContent     = p(ph);
-    document.getElementById('cPi').textContent     = p(pi);
+    document.getElementById('cSss').textContent   = p(sss);
+    document.getElementById('cPh').textContent    = p(ph);
+    document.getElementById('cPi').textContent    = p(pi);
     const caEl = document.getElementById('cCa');
     caEl.textContent = p(ca);
     caEl.title = caObj ? (caObj.breakdown || '') : '';
-    document.getElementById('cOther').textContent  = p(other);
-    document.getElementById('cTotal').textContent  = p(totDed);
-    document.getElementById('cNet').textContent    =
+    document.getElementById('cOther').textContent = p(other);
+    document.getElementById('cTotal').textContent = p(totDed);
+    document.getElementById('cNet').textContent   =
         parseFloat(net||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
     const sub = document.getElementById('cSub');
@@ -490,4 +494,3 @@ compute();
 </script>
 </body>
 </html>
-
