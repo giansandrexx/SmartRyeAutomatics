@@ -20,8 +20,7 @@ if (isset($_GET['logout'])) {
 $user_permissions = [];
 
 if ($user_role === 'moderator') {
-
-    $user_permissions = ['tool_room', 'scheduling', 'attendance', 'payroll'];
+    $user_permissions = ['tool_room', 'scheduling', 'attendance', 'payroll', 'employee_info'];
 } else {
     require_once 'config.php';
     if (!$conn->connect_error) {
@@ -179,6 +178,26 @@ function canAccess($key, $perms) {
             </div>
             <?php endif; ?>
 
+            <?php if (canAccess('employee_info', $user_permissions)): ?>
+            <div class="system-card">
+                <div class="system-card-header">
+                    <div class="system-icon">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <h3>Employee Information</h3>
+                </div>
+                <div class="system-card-body">
+                    <p class="system-description">Manage employee informations, departments, positions &amp; records.</p>
+                    <a href="sraemployee/index"
+                       class="system-btn"
+                       data-navigate="sraemployee/index"
+                       data-room-name="Employee Information">
+                        Access Employee Info <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <?php if (empty($user_permissions)): ?>
             <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: #94a3b8;">
                 <i class="fas fa-lock" style="font-size: 48px; margin-bottom: 16px; display:block;"></i>
@@ -195,4 +214,3 @@ function canAccess($key, $perms) {
     <script src="js/dropdown.js"></script>
 </body>
 </html>
-
