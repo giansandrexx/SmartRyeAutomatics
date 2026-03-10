@@ -11,14 +11,12 @@ if ($r && $r->num_rows > 0) {
     $r = $conn->query("SELECT setting_key, setting_value FROM payroll_settings");
     if ($r) { while ($row = $r->fetch_assoc()) { $ps[$row['setting_key']] = (float)$row['setting_value']; } }
 }
-$setting_late_rate  = $ps['late_rate']    ?? 2.5;
-$setting_ot_rate    = $ps['ot_rate']      ?? 150;
 $setting_grace      = $ps['grace_period'] ?? 0;
 $setting_sss        = $ps['sss']          ?? 600;
 $setting_philhealth = $ps['philhealth']   ?? 300;
 $setting_pagibig    = $ps['pagibig']      ?? 100;
 
-$message = '';
+$message      = '';
 $message_type = '';
 
 $employees = [];
@@ -51,29 +49,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date_from    = $conn->real_escape_string($_POST['date_from']);
     $date_to      = $conn->real_escape_string($_POST['date_to']);
     $days_worked  = (float)$_POST['days_worked'];
-    $absent_days  = (float)($_POST['absent_days'] ?? 0);
-    $late_minutes = (float)($_POST['late_minutes'] ?? 0);
-    $ot_hours     = (float)($_POST['ot_hours'] ?? 0);
+    $absent_days  = (float)($_POST['absent_days']      ?? 0);
+    $late_minutes = (float)($_POST['late_minutes']     ?? 0);
+    $ot_hours     = (float)($_POST['ot_hours']         ?? 0);
     $other_deduct = (float)($_POST['other_deductions'] ?? 0);
-    $sss          = (float)($_POST['sss'] ?? 0);
-    $philhealth   = (float)($_POST['philhealth'] ?? 0);
-    $pagibig      = (float)($_POST['pagibig'] ?? 0);
+    $sss          = (float)($_POST['sss']              ?? 0);
+    $philhealth   = (float)($_POST['philhealth']       ?? 0);
+    $pagibig      = (float)($_POST['pagibig']          ?? 0);
     $remarks      = $conn->real_escape_string($_POST['remarks'] ?? '');
     $apply_gov    = isset($_POST['apply_gov']) ? 1 : 0;
 
-    $emp_r = $conn->query("SELECT daily_rate FROM employees WHERE id = $employee_id");
+    $emp_r = $conn->query("SELECT daily_rate, department FROM employees WHERE id = $employee_id");
     if ($emp_r && $emp_r->num_rows > 0) {
         $emp_data      = $emp_r->fetch_assoc();
         $daily_rate    = (float)$emp_data['daily_rate'];
-        $basic_pay     = $daily_rate * $days_worked;
-        $ot_pay        = $ot_hours * $setting_ot_rate;
-        $absent_deduct = $daily_rate * $absent_days;
-        $late_deduct   = max(0, $late_minutes - $setting_grace) * $setting_late_rate;
-        $gross_pay     = $basic_pay + $ot_pay - $absent_deduct - $late_deduct;
+        $is_field      = strtolower(trim($emp_data['department'] ?? '')) === 'field';
+        $hours_per_day = $is_field ? 10 : 8;
+        $hourly_rate   = $daily_rate / $hours_per_day;
 
-        $gov_sss = $apply_gov ? $sss : 0;
+        $basic_pay     = $daily_rate * $days_worked;
+        $ot_pay        = $hourly_rate * 1.25 * $ot_hours;
+        $absent_deduct = 0;
+        $late_deduct   = ($hourly_rate / 60) * max(0, $late_minutes - $setting_grace);
+        $gross_pay     = $basic_pay + $ot_pay - $late_deduct;
+
+        $gov_sss = $apply_gov ? $sss       : 0;
         $gov_ph  = $apply_gov ? $philhealth : 0;
-        $gov_pi  = $apply_gov ? $pagibig : 0;
+        $gov_pi  = $apply_gov ? $pagibig    : 0;
         $ca      = isset($cash_advances[$employee_id]) ? (float)$cash_advances[$employee_id]['total'] : 0;
 
         $total_deductions = $gov_sss + $gov_ph + $gov_pi + $ca + $other_deduct;
@@ -116,15 +118,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if ($stmt->execute()) {
-            $message = "Payroll saved! Net Pay: ₱" . number_format($net_pay, 2);
+            $message      = "Payroll saved! Net Pay: ₱" . number_format($net_pay, 2);
             $message_type = 'success';
         } else {
-            $message = "Error: " . $conn->error;
+            $message      = "Error: " . $conn->error;
             $message_type = 'error';
         }
         $stmt->close();
     } else {
-        $message = "Employee not found.";
+        $message      = "Employee not found.";
         $message_type = 'error';
     }
 }
@@ -139,7 +141,7 @@ $conn->close();
     <title>SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="../srapayroll/css/process.css">
+    <link rel="stylesheet" href="css/process.css">
 </head>
 <body>
 
@@ -229,11 +231,11 @@ $conn->close();
                     <div class="section-title"><i class="fas fa-sliders-h"></i> Adjustments</div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Late <span class="hint" id="lateHint">minutes · ₱<?= $setting_late_rate ?>/min</span></label>
+                            <label>Late <span class="hint" id="lateHint">minutes</span></label>
                             <input type="number" class="fc" name="late_minutes" id="lateMinutes" min="0" step="1" placeholder="0">
                         </div>
                         <div class="form-group">
-                            <label>Overtime <span class="hint">hours · ₱<?= $setting_ot_rate ?>/hr</span></label>
+                            <label>Overtime <span class="hint">hours · ×1.25</span></label>
                             <input type="number" class="fc" name="ot_hours" id="otHours" min="0" step="0.5" placeholder="0">
                         </div>
                     </div>
@@ -274,13 +276,14 @@ $conn->close();
                 <div class="c-section">
                     <div class="c-stitle">Earnings</div>
                     <div class="c-row"><span class="l">Daily Rate</span><span class="v" id="cRate">₱0.00</span></div>
+                    <div class="c-row"><span class="l">Hourly Rate</span><span class="v" id="cHourly">₱0.00</span></div>
                     <div class="c-row"><span class="l" id="cBasicLbl">Basic Pay (0 days)</span><span class="v pos" id="cBasic">₱0.00</span></div>
-                    <div class="c-row"><span class="l">Overtime Pay</span><span class="v pos" id="cOt">₱0.00</span></div>
+                    <div class="c-row"><span class="l" id="cOtLbl">Overtime Pay (0h × 1.25)</span><span class="v pos" id="cOt">₱0.00</span></div>
                 </div>
                 <div class="c-section">
                     <div class="c-stitle">Attendance Deductions</div>
                     <div class="c-row"><span class="l">Absent</span><span class="v neg" id="cAbsent">– ₱0.00</span></div>
-                    <div class="c-row"><span class="l">Late</span><span class="v neg" id="cLate">– ₱0.00</span></div>
+                    <div class="c-row"><span class="l" id="cLateLbl">Late (0 min)</span><span class="v neg" id="cLate">– ₱0.00</span></div>
                 </div>
                 <div class="gross-row"><span class="l">GROSS PAY</span><span class="v" id="cGross">₱0.00</span></div>
                 <div class="c-section">
@@ -312,8 +315,6 @@ $conn->close();
 const EMP = <?php echo json_encode(array_column($employees, null, 'id')); ?>;
 const CA  = <?php echo json_encode($cash_advances); ?>;
 const SETTINGS = <?php echo json_encode([
-    'late_rate'  => $setting_late_rate,
-    'ot_rate'    => $setting_ot_rate,
     'grace'      => $setting_grace,
     'sss'        => $setting_sss,
     'philhealth' => $setting_philhealth,
@@ -335,14 +336,19 @@ document.addEventListener('click', e => {
 const p = n => '₱' + parseFloat(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 function compute() {
-    const id      = document.getElementById('empSelect').value;
-    const emp     = id ? EMP[id] : null;
-    const isField = emp ? (emp.department||'').toLowerCase().trim() === 'field' : false;
-    const maxDays = isField ? 6 : 15;
-    const rate    = emp ? parseFloat(emp.daily_rate) : 0;
+    const id          = document.getElementById('empSelect').value;
+    const emp         = id ? EMP[id] : null;
+    const isField     = emp ? (emp.department||'').toLowerCase().trim() === 'field' : false;
+    const hoursPerDay = isField ? 10 : 8;
+    const maxDays     = isField ? 6 : 15;
+    const rate        = emp ? parseFloat(emp.daily_rate) : 0;
+    const hourlyRate  = rate > 0 ? rate / hoursPerDay : 0;
 
     document.getElementById('daysWorked').max       = maxDays;
     document.getElementById('daysHint').textContent = isField ? 'Max 6/week' : 'Max 15/period';
+    document.getElementById('lateHint').textContent = emp
+        ? `minutes · ₱${(hourlyRate/60).toFixed(4)}/min`
+        : 'minutes';
 
     const days   = parseFloat(document.getElementById('daysWorked').value)     || 0;
     const absent = parseFloat(document.getElementById('absentDays').value)      || 0;
@@ -350,38 +356,41 @@ function compute() {
     const ot     = parseFloat(document.getElementById('otHours').value)         || 0;
     const other  = parseFloat(document.getElementById('otherDeductions').value) || 0;
     const gov    = document.getElementById('applyGov').checked;
-    const sss    = gov ? (parseFloat(document.getElementById('sssInput').value)       || 0) : 0;
+    const sss    = gov ? (parseFloat(document.getElementById('sssInput').value)        || 0) : 0;
     const ph     = gov ? (parseFloat(document.getElementById('philhealthInput').value) || 0) : 0;
     const pi     = gov ? (parseFloat(document.getElementById('pagibigInput').value)    || 0) : 0;
     const caObj  = id ? CA[id] : null;
     const ca     = caObj ? caObj.total : 0;
 
     const basic   = rate * days;
-    const otPay   = ot * SETTINGS.ot_rate;
-    const absDed  = rate * absent;
-    const lateDed = Math.max(0, late - SETTINGS.grace) * SETTINGS.late_rate;
-    const gross   = basic + otPay - absDed - lateDed;
+    const otPay   = hourlyRate * 1.25 * ot;
+    const absDed  = 0;
+    const lateDed = (hourlyRate / 60) * Math.max(0, late - SETTINGS.grace);
+    const gross   = basic + otPay - lateDed;
     const totDed  = sss + ph + pi + ca + other;
     const net     = gross - totDed;
 
-    document.getElementById('cRate').textContent     = p(rate);
+    document.getElementById('cRate').textContent    = p(rate);
+    document.getElementById('cHourly').textContent  = p(hourlyRate) + '/hr (' + hoursPerDay + 'h day)';
     document.getElementById('cBasicLbl').textContent = 'Basic Pay (' + days + ' days)';
-    document.getElementById('cBasic').textContent    = p(basic);
-    document.getElementById('cOt').textContent       = p(otPay);
-    document.getElementById('cAbsent').textContent   = '– ' + p(absDed);
-    document.getElementById('cLate').textContent     = '– ' + p(lateDed);
-    document.getElementById('cGross').textContent    = p(gross);
+    document.getElementById('cBasic').textContent   = p(basic);
+    document.getElementById('cOtLbl').textContent   = `Overtime Pay (${ot}h × 1.25)`;
+    document.getElementById('cOt').textContent      = p(otPay);
+    document.getElementById('cAbsent').textContent  = '– ' + p(absDed);
+    document.getElementById('cLateLbl').textContent = `Late (${late} min)`;
+    document.getElementById('cLate').textContent    = '– ' + p(lateDed);
+    document.getElementById('cGross').textContent   = p(gross);
     document.getElementById('govNoneTxt').style.display = gov ? 'none'  : 'block';
     document.getElementById('govApplied').style.display = gov ? 'block' : 'none';
-    document.getElementById('cSss').textContent   = p(sss);
-    document.getElementById('cPh').textContent    = p(ph);
-    document.getElementById('cPi').textContent    = p(pi);
+    document.getElementById('cSss').textContent    = p(sss);
+    document.getElementById('cPh').textContent     = p(ph);
+    document.getElementById('cPi').textContent     = p(pi);
     const caEl = document.getElementById('cCa');
     caEl.textContent = p(ca);
     caEl.title = caObj ? (caObj.breakdown || '') : '';
-    document.getElementById('cOther').textContent = p(other);
-    document.getElementById('cTotal').textContent = p(totDed);
-    document.getElementById('cNet').textContent   =
+    document.getElementById('cOther').textContent  = p(other);
+    document.getElementById('cTotal').textContent  = p(totDed);
+    document.getElementById('cNet').textContent    =
         parseFloat(net||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
     const sub = document.getElementById('cSub');
