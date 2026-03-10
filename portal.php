@@ -198,6 +198,23 @@ function canAccess($key, $perms) {
             </div>
             <?php endif; ?>
 
+            <?php if ($user_role === 'moderator'): ?>
+<div class="system-card">
+    <div class="system-card-header">
+        <div class="system-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+            <i class="fas fa-clipboard-list"></i>
+        </div>
+        <h3>System Logs</h3>
+    </div>
+    <div class="system-card-body">
+        <p class="system-description">Monitor all activity, changes &amp; actions across every system.</p>
+        <a href="system_logs" class="system-btn">
+            View System Logs <i class="fas fa-arrow-right"></i>
+        </a>
+    </div>
+</div>
+<?php endif; ?>
+
             <?php if (empty($user_permissions)): ?>
             <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: #94a3b8;">
                 <i class="fas fa-lock" style="font-size: 48px; margin-bottom: 16px; display:block;"></i>
@@ -214,4 +231,3 @@ function canAccess($key, $perms) {
     <script src="js/dropdown.js"></script>
 </body>
 </html>
-
