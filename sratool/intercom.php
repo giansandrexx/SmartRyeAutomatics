@@ -7,10 +7,15 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once "../config.php";
+require_once "../log_helper.php";
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+
+$uid   = $_SESSION['user_id'];
+$uname = $_SESSION['username']  ?? 'unknown';
+$uful  = $_SESSION['full_name'] ?? 'Unknown User';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -18,25 +23,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $item_name = $conn->real_escape_string($_POST['item_name']);
             $quantity  = (int)$_POST['quantity'];
             $sql = "INSERT INTO video_intercom (item_name, quantity) VALUES ('$item_name', $quantity)";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Added Video Intercom Item',
+                    "Added: \"$item_name\" — Qty: $quantity");
+            }
 
         } elseif ($_POST['action'] === 'edit') {
             $id        = (int)$_POST['id'];
             $item_name = $conn->real_escape_string($_POST['item_name']);
             $quantity  = (int)$_POST['quantity'];
+            $old       = $conn->query("SELECT item_name, quantity FROM video_intercom WHERE id=$id")->fetch_assoc();
             $sql = "UPDATE video_intercom SET item_name='$item_name', quantity=$quantity WHERE id=$id";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Edited Video Intercom Item',
+                    "Edited: \"{$old['item_name']}\" → \"$item_name\" | Qty: {$old['quantity']} → $quantity");
+            }
 
         } elseif ($_POST['action'] === 'delete') {
             $id  = (int)$_POST['id'];
+            $old = $conn->query("SELECT item_name, quantity FROM video_intercom WHERE id=$id")->fetch_assoc();
             $sql = "DELETE FROM video_intercom WHERE id=$id";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Deleted Video Intercom Item',
+                    "Deleted: \"{$old['item_name']}\" (was {$old['quantity']} units)");
+            }
 
         } elseif ($_POST['action'] === 'adjust') {
             $id         = (int)$_POST['id'];
             $adjustment = (int)$_POST['adjustment'];
+            $old        = $conn->query("SELECT item_name, quantity FROM video_intercom WHERE id=$id")->fetch_assoc(); // ← ADDED
             $sql = "UPDATE video_intercom SET quantity = quantity + $adjustment WHERE id=$id";
-            $conn->query($sql);
+            if ($conn->query($sql)) { // ← CHANGED
+                $newQty    = $old['quantity'] + $adjustment;
+                $direction = $adjustment >= 0 ? "+$adjustment" : "$adjustment";
+                logActivity($conn, $uid, $uname, $uful, 'tool_room', 'Adjusted Video Intercom Stock',
+                    "Adjusted \"{$old['item_name']}\": {$old['quantity']} → $newQty ($direction)");
+            }
         }
         header("Location: intercom.php");
         exit();
