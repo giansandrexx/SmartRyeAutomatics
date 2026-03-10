@@ -147,11 +147,11 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
                     <label>Full Name *</label>
                     <input type="text" class="form-input" id="fName" placeholder="e.g. Juan Dela Cruz">
                 </div>
-                <div class="form-group">
+                <div class="form-group edit-hidden">
                     <label>Phone</label>
                     <input type="text" class="form-input" id="fPhone" placeholder="+63 9XX XXX XXXX">
                 </div>
-                <div class="form-group">
+                <div class="form-group edit-hidden">
                     <label>Department *</label>
                     <select class="form-input" id="fDept">
                         <option value="">— Select —</option>
@@ -159,11 +159,11 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
                         <option value="Office">Office</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group edit-hidden">
                     <label>Position *</label>
                     <input type="text" class="form-input" id="fPosition" placeholder="e.g. Engineer">
                 </div>
-                <div class="form-group">
+                <div class="form-group edit-hidden">
                     <label>Employment Type</label>
                     <select class="form-input" id="fEmpType">
                         <option value="Full Time">Full Time</option>
@@ -172,7 +172,7 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
                         <option value="Probationary">Probationary</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group edit-hidden">
                     <label>Hire Date</label>
                     <input type="date" class="form-input" id="fHireDate">
                 </div>
@@ -201,5 +201,8 @@ $user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 
 <script src="js/attendance.js"></script>
 </body>
+</html>
+</body>
 
 </html>
+
