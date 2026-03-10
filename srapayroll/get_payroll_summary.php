@@ -32,9 +32,9 @@ $dept  = strtolower(trim($emp['department'] ?? ''));
 $today = new DateTime('today');
 
 if ($dept === 'field') {
-    $dow       = (int)$today->format('N');
-    $monday    = (clone $today)->modify('-' . ($dow - 1) . ' days');
-    $saturday  = (clone $monday)->modify('+5 days');
+    $dow      = (int)$today->format('N');
+    $monday   = (clone $today)->modify('-' . ($dow - 1) . ' days');
+    $saturday = (clone $monday)->modify('+5 days');
     $date_from = $monday->format('Y-m-d');
     $date_to   = $saturday->format('Y-m-d');
 } else {
@@ -80,7 +80,7 @@ $ot_row   = $ot_r->get_result()->fetch_assoc();
 $ot_r->close();
 $ot_hours = round((float)($ot_row['total_ot'] ?? 0), 2);
 
-$cutoff_in = ($dept === 'field') ? (7 * 60 + 10) : (8 * 60 + 10);
+$cutoff_in = ($dept === 'field') ? (7 * 60) : (8 * 60);
 
 $days_worked  = 0;
 $absent_days  = 0;
