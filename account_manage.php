@@ -131,7 +131,7 @@ $conn->close();
     <link rel="stylesheet" href="sratool/css/consumables.css">
     <link rel="stylesheet" href="sratool/css/dashboard.css">
     <link rel="stylesheet" href="sratool/css/portal.css">
-    <link rel="stylesheet" href="/smartryesystem/sratool/css/responsive.css">
+    <link rel="stylesheet" href="sratool/css/responsive.css">
 </head>
 <body>
 
@@ -552,3 +552,4 @@ window.addEventListener('click', function (e) {
 </script>
 </body>
 </html>
+
