@@ -10,9 +10,14 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once "../config.php";
+require_once "../log_helper.php";
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
+
+$uid   = $_SESSION['user_id'];
+$uname = $_SESSION['username']  ?? 'unknown';
+$uful  = $_SESSION['full_name'] ?? 'Unknown User';
 
 if ($method === 'GET') {
 
@@ -97,10 +102,16 @@ if ($method === 'POST') {
             exit;
         }
 
+        $empRow  = $conn->query("SELECT name FROM employees WHERE id=$emp_id")->fetch_assoc();
+        $empName = $empRow['name'] ?? "Employee #$emp_id"; // ← ADDED
+
         if ($time_in === null && $time_out === null) {
             $del = $conn->prepare("DELETE FROM attendance WHERE emp_id = ? AND att_date = ?");
             $del->bind_param("is", $emp_id, $att_date);
-            $del->execute();
+            if ($del->execute()) { // ← CHANGED
+                logActivity($conn, $uid, $uname, $uful, 'attendance', 'Deleted Attendance',
+                    "Employee: $empName | Date: $att_date");
+            }
             $del->close();
             echo json_encode(['success' => true, 'action' => 'deleted']);
             exit;
@@ -135,6 +146,9 @@ if ($method === 'POST') {
             $stmt->close();
             exit;
         }
+        $logAction = $exists ? 'Updated Attendance' : 'Added Attendance';
+        logActivity($conn, $uid, $uname, $uful, 'attendance', $logAction,
+            "Employee: $empName | Date: $att_date | In: " . ($time_in ?? '-') . " | Out: " . ($time_out ?? '-'));
         $stmt->close();
         echo json_encode(['success' => true, 'emp_id' => $emp_id, 'att_date' => $att_date, 'action' => $exists ? 'updated' : 'inserted']);
         exit;
@@ -146,9 +160,16 @@ if ($method === 'POST') {
         $ot_m       = (float)($body['ot_morning']   ?? 0);
         $ot_a       = (float)($body['ot_afternoon'] ?? 0);
         if (!$emp_id || !$week_start) { echo json_encode(['success' => false, 'message' => 'Missing fields']); exit; }
+
+        $empRow  = $conn->query("SELECT name FROM employees WHERE id=$emp_id")->fetch_assoc();
+        $empName = $empRow['name'] ?? "Employee #$emp_id";
+
         $stmt = $conn->prepare("INSERT INTO overtime (emp_id, week_start, ot_morning, ot_afternoon) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE ot_morning = VALUES(ot_morning), ot_afternoon = VALUES(ot_afternoon)");
         $stmt->bind_param("isdd", $emp_id, $week_start, $ot_m, $ot_a);
-        $stmt->execute();
+        if ($stmt->execute()) {
+            logActivity($conn, $uid, $uname, $uful, 'attendance', 'Saved Overtime',
+                "Employee: $empName | Week: $week_start | Morning OT: {$ot_m}h | Afternoon OT: {$ot_a}h");
+        }
         $stmt->close();
         echo json_encode(['success' => true]);
         exit;
@@ -179,10 +200,16 @@ if ($method === 'POST') {
 
         $stmt = $conn->prepare("INSERT INTO employees (employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("sssssssds", $employee_id, $name, $dept, $color, $phone, $position, $employment_type, $daily_rate, $hire_date);
-        $stmt->execute();
-        $new_id = $conn->insert_id;
-        $stmt->close();
-        echo json_encode(['success' => true, 'id' => $new_id]);
+        if ($stmt->execute()) {
+            $new_id = $conn->insert_id;
+            logActivity($conn, $uid, $uname, $uful, 'attendance', 'Added Employee',
+                "Added: $name (ID: $employee_id) | Dept: $dept | Position: $position | Type: $employment_type");
+            $stmt->close();
+            echo json_encode(['success' => true, 'id' => $new_id]);
+        } else {
+            $stmt->close();
+            echo json_encode(['success' => false, 'message' => 'Insert failed']);
+        }
         exit;
     }
 
@@ -202,9 +229,14 @@ if ($method === 'POST') {
         if ($chk->num_rows > 0) { echo json_encode(['success' => false, 'message' => 'Employee ID already in use']); exit; }
         $chk->close();
 
+        $old = $conn->query("SELECT name, employee_id FROM employees WHERE id=$id")->fetch_assoc();
+
         $stmt = $conn->prepare("UPDATE employees SET employee_id=?, name=? WHERE id=?");
         $stmt->bind_param("ssi", $employee_id, $name, $id);
-        $stmt->execute();
+        if ($stmt->execute()) {
+            logActivity($conn, $uid, $uname, $uful, 'attendance', 'Edited Employee',
+                "Edited: \"{$old['name']}\" → \"$name\" | ID: {$old['employee_id']} → $employee_id");
+        }
         $stmt->close();
         echo json_encode(['success' => true]);
         exit;
@@ -213,9 +245,15 @@ if ($method === 'POST') {
     if ($action === 'delete_employee') {
         $id = (int)($body['id'] ?? 0);
         if (!$id) { echo json_encode(['success' => false, 'message' => 'Missing id']); exit; }
+
+        $old = $conn->query("SELECT name, employee_id FROM employees WHERE id=$id")->fetch_assoc();
+
         $stmt = $conn->prepare("UPDATE employees SET is_active = 0 WHERE id = ?");
         $stmt->bind_param("i", $id);
-        $stmt->execute();
+        if ($stmt->execute()) {
+            logActivity($conn, $uid, $uname, $uful, 'attendance', 'Deactivated Employee',
+                "Deactivated: \"{$old['name']}\" (ID: {$old['employee_id']})");
+        }
         $stmt->close();
         echo json_encode(['success' => true]);
         exit;
