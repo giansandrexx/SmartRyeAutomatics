@@ -13,12 +13,14 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../log_helper.php';
 
 $method   = $_SERVER['REQUEST_METHOD'];
 $action   = $_GET['action'] ?? '';
 $canWrite = in_array($_SESSION['role'] ?? '', ['admin', 'moderator']);
 $userId   = (int)$_SESSION['user_id'];
 $userName = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'Unknown';
+$uname    = $_SESSION['username'] ?? 'unknown';
 
 function respond($data) {
     echo json_encode($data);
@@ -146,6 +148,12 @@ switch ($method) {
                 INDEX idx_event_id (event_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
             addLog($conn, $eventId, $userId, $userName, 'comment', $content);
+
+            $ev = getEvent($conn, $eventId);
+            logActivity($conn, $userId, $uname, $userName,
+                'scheduling', 'Added Comment',
+                "Commented on event: \"{$ev['title']}\" ({$ev['date']}) — \"{$content}\"");
+
             $rows = dbFetch($conn,
                 "SELECT * FROM event_logs WHERE event_id = ? ORDER BY created_at ASC",
                 'i', [$eventId]);
@@ -175,7 +183,15 @@ switch ($method) {
         $stmt->execute();
         $newId = (int)$conn->insert_id;
         $stmt->close();
+
         addLog($conn, $newId, $userId, $userName, 'created', "Event created by $userName");
+
+        $timeStr = $evStart ? " at " . $evStart : "";
+        $assignStr = $evAssignee ? ", Assigned to: $evAssignee" : "";
+        logActivity($conn, $userId, $uname, $userName,
+            'scheduling', 'Created Event',
+            "Created event: \"$evTitle\" on $evDate$timeStr — Category: $evCategory, Status: $evStatus$assignStr");
+
         respond(['success' => true, 'data' => getEvent($conn, $newId)]);
         break;
 
@@ -188,13 +204,20 @@ switch ($method) {
             $newStatus = trim($body['status'] ?? '');
             $validStats = ['pending','confirmed','completed','cancelled'];
             if (!$id || !in_array($newStatus, $validStats)) respond(['success' => false, 'message' => 'Invalid id or status']);
+
             $old  = getEvent($conn, $id);
             $stmt = $conn->prepare("UPDATE events SET status = ? WHERE id = ?");
             $stmt->bind_param('si', $newStatus, $id);
             $stmt->execute();
             $stmt->close();
+
             addLog($conn, $id, $userId, $userName, 'status_change',
                 "Status changed from {$old['status']} to $newStatus by $userName");
+
+            logActivity($conn, $userId, $uname, $userName,
+                'scheduling', 'Changed Event Status',
+                "Event: \"{$old['title']}\" ({$old['date']}) — Status: {$old['status']} → $newStatus");
+
             respond(['success' => true, 'data' => getEvent($conn, $id)]);
         }
 
@@ -220,7 +243,15 @@ switch ($method) {
         $stmt->bind_param('ssssssssi', $evTitle, $evDate, $evStart, $evEnd, $evCategory, $evStatus, $evAssignee, $evNotes, $id);
         $stmt->execute();
         $stmt->close();
+
         addLog($conn, $id, $userId, $userName, 'edit', "Event updated by $userName");
+
+        // System log
+        $assignStr = $evAssignee ? ", Assigned to: $evAssignee" : "";
+        logActivity($conn, $userId, $uname, $userName,
+            'scheduling', 'Updated Event',
+            "Updated event: \"$evTitle\" on $evDate — Category: $evCategory, Status: $evStatus$assignStr");
+
         respond(['success' => true, 'data' => getEvent($conn, $id)]);
         break;
 
@@ -238,6 +269,12 @@ switch ($method) {
         $stmt->execute();
         $affected = $stmt->affected_rows;
         $stmt->close();
+
+        // System log
+        logActivity($conn, $userId, $uname, $userName,
+            'scheduling', 'Deleted Event',
+            "Deleted event: \"{$event['title']}\" on {$event['date']} — Category: {$event['category']}");
+
         respond(['success' => true, 'affected' => $affected]);
         break;
 
