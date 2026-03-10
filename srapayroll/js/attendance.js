@@ -157,14 +157,21 @@ function render() {
                     status  = 'sunday';
                     cellCls = 'av-sunday';
                 } else if (isSaturday(dow)) {
-                    cellCls = 'av-saturday';
-                    if (rec.in || rec.out) {
-                        status = dayStatus(emp.id, dateStr, emp.department);
-                        dotCls = status;
-                    } else {
-    dotCls = 'empty';
-    status = 'none';
-}
+    cellCls = 'av-saturday';
+    if (rec.in || rec.out) {
+        status = dayStatus(emp.id, dateStr, emp.department);
+        dotCls = status;
+    } else {
+        const cellDate = new Date(dateStr + 'T00:00:00');
+        const today    = new Date(); today.setHours(0, 0, 0, 0);
+        if (cellDate < today) {
+            dotCls = 'absent';
+            status = 'absent';
+        } else {
+            dotCls = 'empty';
+            status = 'none';
+        }
+    }
 } else {
     cellCls = isToday(currentYear, currentMonth, d) ? 'av-today-cell' : '';
     if (rec.in || rec.out) {
