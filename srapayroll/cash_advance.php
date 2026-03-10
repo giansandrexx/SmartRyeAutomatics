@@ -45,16 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    if ($action === 'update_status') {
-        $id     = (int)$_POST['ca_id'];
-        $status = $conn->real_escape_string($_POST['status']);
-        if (in_array($status, ['pending','deducted','cancelled'])) {
-            $conn->query("UPDATE cash_advances SET status='$status' WHERE id=$id");
-            $message = "Status updated.";
-            $message_type = 'success';
-        }
-    }
-
     if ($action === 'delete') {
         $id = (int)$_POST['ca_id'];
         $conn->query("DELETE FROM cash_advances WHERE id=$id");
@@ -99,8 +89,8 @@ $conn->close();
     <title>SRA Payroll</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../sratool/img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="../srapayroll/css/advance.css">
-    <link rel="stylesheet" href="../srapayroll/css/process.css">
+    <link rel="stylesheet" href="css/advance.css">
+    <link rel="stylesheet" href="css/process.css">
 </head>
 <body>
 
@@ -183,7 +173,14 @@ $conn->close();
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($advances as $ca): ?>
+                <?php foreach ($advances as $ca):
+                    $badge = [
+                        'pending'   => ['color' => '#f59e0b', 'icon' => 'fa-clock',       'label' => 'Pending'],
+                        'deducted'  => ['color' => '#10b981', 'icon' => 'fa-check-circle', 'label' => 'Deducted'],
+                        'cancelled' => ['color' => '#ef4444', 'icon' => 'fa-times-circle', 'label' => 'Cancelled'],
+                    ];
+                    $b = $badge[$ca['status']] ?? $badge['pending'];
+                ?>
                 <tr>
                     <td><strong><?= htmlspecialchars($ca['emp_name']) ?></strong></td>
                     <td><?= htmlspecialchars($ca['department']) ?></td>
@@ -191,15 +188,9 @@ $conn->close();
                     <td><?= date('M d, Y', strtotime($ca['date_given'])) ?></td>
                     <td><?= htmlspecialchars($ca['notes'] ?: '—') ?></td>
                     <td>
-                        <form method="POST" class="status-form">
-                            <input type="hidden" name="action" value="update_status">
-                            <input type="hidden" name="ca_id" value="<?= $ca['id'] ?>">
-                            <select class="status-select" name="status" onchange="this.form.submit()">
-                                <option value="pending"   <?= $ca['status']==='pending'   ?'selected':'' ?>>Pending</option>
-                                <option value="deducted"  <?= $ca['status']==='deducted'  ?'selected':'' ?>>Deducted</option>
-                                <option value="cancelled" <?= $ca['status']==='cancelled' ?'selected':'' ?>>Cancelled</option>
-                            </select>
-                        </form>
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:<?= $b['color'] ?>22;color:<?= $b['color'] ?>;">
+                            <i class="fas <?= $b['icon'] ?>"></i> <?= $b['label'] ?>
+                        </span>
                     </td>
                     <td>
                         <button class="act-btn del" title="Delete"
@@ -277,7 +268,6 @@ $conn->close();
 
 <script src="js/advance.js"></script>
 <script>
-
 <?php if ($message && $message_type === 'success'): ?>
 const toast = document.getElementById('sra-toast');
 document.getElementById('toastMsg').textContent = <?= json_encode($message) ?>;
