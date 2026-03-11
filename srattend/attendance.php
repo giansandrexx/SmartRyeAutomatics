@@ -24,10 +24,10 @@ if ($method === 'GET') {
     if ($action === 'employees') {
         $dept = $_GET['dept'] ?? '';
         if ($dept) {
-            $stmt = $conn->prepare("SELECT id, employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date FROM employees WHERE is_active=1 AND department=? ORDER BY name");
+            $stmt = $conn->prepare("SELECT id, employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date FROM employees WHERE is_active=1 AND department=? ORDER BY hire_date ASC");
             $stmt->bind_param("s", $dept);
         } else {
-            $stmt = $conn->prepare("SELECT id, employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date FROM employees WHERE is_active=1 ORDER BY department, name");
+            $stmt = $conn->prepare("SELECT id, employee_id, name, department, color, phone, position, employment_type, daily_rate, hire_date FROM employees WHERE is_active=1 ORDER BY hire_date ASC");
         }
         $stmt->execute();
         $result = $stmt->get_result();
@@ -103,12 +103,12 @@ if ($method === 'POST') {
         }
 
         $empRow  = $conn->query("SELECT name FROM employees WHERE id=$emp_id")->fetch_assoc();
-        $empName = $empRow['name'] ?? "Employee #$emp_id"; // ← ADDED
+        $empName = $empRow['name'] ?? "Employee #$emp_id";
 
         if ($time_in === null && $time_out === null) {
             $del = $conn->prepare("DELETE FROM attendance WHERE emp_id = ? AND att_date = ?");
             $del->bind_param("is", $emp_id, $att_date);
-            if ($del->execute()) { // ← CHANGED
+            if ($del->execute()) {
                 logActivity($conn, $uid, $uname, $uful, 'attendance', 'Deleted Attendance',
                     "Employee: $empName | Date: $att_date");
             }
