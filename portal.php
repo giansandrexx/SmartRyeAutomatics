@@ -92,7 +92,7 @@ function canAccess($key, $perms) {
 
     <div class="main-content">
         <div class="page-title">
-            <h1>Welcome, <?php echo htmlspecialchars($full_name); ?>!</h1>
+            <h1 id="greeting-text" data-name="<?php echo htmlspecialchars($full_name); ?>"></h1>
             <p>Select a management system to access</p>
         </div>
 
@@ -229,6 +229,8 @@ function canAccess($key, $perms) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/portal_transition.js"></script>
     <script src="js/dropdown.js"></script>
+    <script src="js/greeting.js"></script>
 </body>
 </html>
+
 
