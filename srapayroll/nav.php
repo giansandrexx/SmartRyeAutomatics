@@ -34,6 +34,5 @@
     <li><a href="attendance"      class="<?= $cp=='attendance.php'?'active':'' ?>"><i class="fas fa-calendar-check"></i> View Attendance</a></li>
     <li><a href="cash_advance"    class="<?= $cp=='cash_advance.php'?'active':'' ?>"><i class="fas fa-money-bill-wave"></i> Cash Advance</a></li>
     <li><a href="payslips"        class="<?= $cp=='payslips.php'?'active':'' ?>"><i class="fas fa-file-invoice-dollar"></i> Payslips</a></li>
-    <li><a href="settings"        class="<?= $cp=='settings.php'?'active':'' ?>"><i class="fas fa-cog"></i> Settings</a></li>
 </ul>
 </nav>
