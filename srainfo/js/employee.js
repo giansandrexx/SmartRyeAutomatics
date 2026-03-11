@@ -4,6 +4,8 @@ let currentTab = 'employees';
 let allEmployees = [];
 let allUnemployed = [];
 let allContracts = [];
+let empPage = 1;
+const EMP_PER_PAGE = 12;
 
 function initials(name) {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -109,16 +111,26 @@ function renderEmployees(q) {
     );
     if (!data.length) {
         grid.innerHTML = `<div class="emp-no-data"><i class="fas fa-users-slash"></i><p>No employees found.</p></div>`;
+        document.getElementById('empPagination').innerHTML = '';
         return;
     }
-    grid.innerHTML = data.map(e => {
+
+    const totalPages = Math.ceil(data.length / EMP_PER_PAGE);
+    
+    document.getElementById('searchInput').addEventListener('input', () => {
+    empPage = 1;
+    renderActive();
+});
+
+    const start = (empPage - 1) * EMP_PER_PAGE;
+    const paged = data.slice(start, start + EMP_PER_PAGE);
+
+    grid.innerHTML = paged.map(e => {
         const initStr = initials(e.name);
         const statusBadge = e.is_active == 1
             ? '<span class="badge badge-active"><i class="fas fa-circle" style="font-size:6px;vertical-align:middle"></i> Active</span>'
             : '<span class="badge badge-inactive"><i class="fas fa-circle" style="font-size:6px;vertical-align:middle"></i> Inactive</span>';
-
         const fi = (label, val) => `<div class="epc-field"><div class="epc-label">${label}</div><div class="epc-val">${val||'—'}</div></div>`;
-
         return `
         <div class="emp-card" onclick="openViewModal(${e.id})">
             <div class="emp-card-header">
@@ -145,6 +157,25 @@ function renderEmployees(q) {
             </div>
         </div>`;
     }).join('');
+
+    const pag = document.getElementById('empPagination');
+    if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+    let btns = `<button class="pag-btn ${empPage === 1 ? 'disabled' : ''}" onclick="goEmpPage(${empPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
+    for (let p = Math.max(1, empPage - 2); p <= Math.min(totalPages, empPage + 2); p++) {
+        btns += `<button class="pag-btn ${p === empPage ? 'active' : ''}" onclick="goEmpPage(${p})">${p}</button>`;
+    }
+    btns += `<button class="pag-btn ${empPage === totalPages ? 'disabled' : ''}" onclick="goEmpPage(${empPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
+
+    pag.innerHTML = `
+        <div class="pag-info">Showing ${start + 1}–${Math.min(start + EMP_PER_PAGE, data.length)} of ${data.length} employees</div>
+        <div class="pag-btns">${btns}</div>`;
+}
+
+function goEmpPage(p) {
+    empPage = p;
+    renderActive();
+    document.getElementById('empCardGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function openViewModal(id) {
