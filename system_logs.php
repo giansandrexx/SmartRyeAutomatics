@@ -74,7 +74,7 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
     <link rel="stylesheet" href="sratool/css/portal.css">
     <link rel="stylesheet" href="sratool/css/consumables.css">
     <link rel="stylesheet" href="sratool/css/dashboard.css">
-    <link rel="stylesheet" href="/smartryesystem/sratool/css/responsive.css">
+    <link rel="stylesheet" href="sratool/css/responsive.css">
     <style>
         :root { --indigo: #6366f1; --indigo-dark: #4f46e5; }
 
@@ -343,3 +343,4 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
 <script src="js/dropdown.js"></script>
 </body>
 </html>
+
