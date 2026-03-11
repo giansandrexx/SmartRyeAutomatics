@@ -301,7 +301,7 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
                     </td>
                     <td class="log-date">
                         <?php echo date('M d, Y', strtotime($log['created_at'])); ?><br>
-                        <small><?php echo date('h:i:s A', strtotime($log['created_at'])); ?></small>
+                        <small><?php echo date('g:i A', strtotime($log['created_at'])); ?></small>
                     </td>
                 </tr>
                 <?php endwhile; ?>
@@ -343,5 +343,6 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
 <script src="js/dropdown.js"></script>
 </body>
 </html>
+
 
 
