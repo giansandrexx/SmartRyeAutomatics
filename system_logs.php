@@ -16,7 +16,7 @@ $page     = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $per_page = 25;
 $offset   = ($page - 1) * $per_page;
 
-$where = ["system_key != 'payroll'"];
+$where = ["system_key NOT IN ('payroll', 'account', 'system_logs')"];
 if ($filter_system) $where[] = "system_key = '$filter_system'";
 if ($filter_user)   $where[] = "(username LIKE '%$filter_user%' OR full_name LIKE '%$filter_user%')";
 if ($filter_date)   $where[] = "DATE(created_at) = '$filter_date'";
@@ -30,10 +30,10 @@ $total_pages = ceil($total_count / $per_page);
 $logs = $conn->query("SELECT * FROM system_logs $where_sql ORDER BY created_at DESC LIMIT $per_page OFFSET $offset");
 
 $stats = [];
-$stat_res = $conn->query("SELECT system_key, COUNT(*) as cnt FROM system_logs WHERE system_key != 'payroll' GROUP BY system_key");
+$stat_res = $conn->query("SELECT system_key, COUNT(*) as cnt FROM system_logs WHERE system_key NOT IN ('payroll', 'account', 'system_logs') GROUP BY system_key");
 while ($s = $stat_res->fetch_assoc()) $stats[$s['system_key']] = $s['cnt'];
 
-$recent = $conn->query("SELECT COUNT(*) as cnt FROM system_logs WHERE created_at >= NOW() - INTERVAL 24 HOUR AND system_key != 'payroll'")->fetch_assoc()['cnt'];
+$recent = $conn->query("SELECT COUNT(*) as cnt FROM system_logs WHERE created_at >= NOW() - INTERVAL 24 HOUR AND system_key NOT IN ('payroll', 'account', 'system_logs')")->fetch_assoc()['cnt'];
 
 $conn->close();
 
@@ -42,8 +42,6 @@ $system_labels = [
     'scheduling'    => 'Scheduling',
     'attendance'    => 'Attendance',
     'employee_info' => 'Employee Info',
-    'system_logs'   => 'System Logs',
-    'account'       => 'Account Mgmt',
 ];
 
 $system_icons = [
@@ -51,8 +49,6 @@ $system_icons = [
     'scheduling'    => 'fa-calendar-alt',
     'attendance'    => 'fa-address-book',
     'employee_info' => 'fa-id-card',
-    'account'       => 'fa-users-cog',
-    'system_logs'   => 'fa-clipboard-list',
 ];
 
 $system_colors = [
@@ -60,8 +56,6 @@ $system_colors = [
     'scheduling'    => '#8b5cf6',
     'attendance'    => '#10b981',
     'employee_info' => '#ec4899',
-    'account'       => '#6366f1',
-    'system_logs'   => '#64748b',
 ];
 
 $qparams = array_filter(['system'=>$filter_system,'user'=>$filter_user,'date'=>$filter_date,'search'=>$filter_search]);
@@ -80,7 +74,7 @@ $qstring = $qparams ? '&' . http_build_query($qparams) : '';
     <link rel="stylesheet" href="sratool/css/portal.css">
     <link rel="stylesheet" href="sratool/css/consumables.css">
     <link rel="stylesheet" href="sratool/css/dashboard.css">
-    <link rel="stylesheet" href="sratool/css/responsive.css">
+    <link rel="stylesheet" href="/smartryesystem/sratool/css/responsive.css">
     <style>
         :root { --indigo: #6366f1; --indigo-dark: #4f46e5; }
 
