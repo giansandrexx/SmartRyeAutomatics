@@ -104,7 +104,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
         <div class="stat-card">
             <div class="stat-icon amber"><i class="fas fa-exclamation-triangle"></i></div>
             <div>
-                <div class="stat-label">Expiring (30 days)</div>
+                <div class="stat-label">Expiring Contracts (30 days)</div>
                 <div class="stat-value" id="statExpiring">0</div>
             </div>
         </div>
@@ -438,3 +438,4 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 <script src="js/employee.js"></script>
 </body>
 </html>
+
