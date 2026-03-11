@@ -141,6 +141,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 
 <div class="tab-panel" data-panel="employees">
     <div id="empCardGrid" class="emp-card-grid"></div>
+    <div id="empPagination" class="emp-pagination"></div>
 </div>
 
     <div class="tab-panel" data-panel="unemployed" style="display:none">
@@ -438,4 +439,3 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
 <script src="js/employee.js"></script>
 </body>
 </html>
-
