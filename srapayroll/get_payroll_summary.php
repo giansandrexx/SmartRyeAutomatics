@@ -80,11 +80,13 @@ $ot_row   = $ot_r->get_result()->fetch_assoc();
 $ot_r->close();
 $ot_hours = round((float)($ot_row['total_ot'] ?? 0), 2);
 
-$cutoff_in = ($dept === 'field') ? (7 * 60) : (8 * 60);
+$cutoff_in  = ($dept === 'field') ? (7 * 60) : (8 * 60);
+$cutoff_out = 17 * 60;
 
-$days_worked  = 0;
-$absent_days  = 0;
-$late_minutes = 0;
+$days_worked       = 0;
+$absent_days       = 0;
+$late_minutes      = 0;
+$undertime_minutes = 0;
 
 $cursor = new DateTime($date_from);
 $end    = new DateTime($date_to);
@@ -99,11 +101,19 @@ while ($cursor <= $end) {
         $rec = $att_map[$date_key] ?? null;
         if ($rec && ($rec['in'] || $rec['out'])) {
             $days_worked++;
+
             if (!empty($rec['in'])) {
                 list($h, $m)  = array_map('intval', explode(':', $rec['in']));
                 $in_min       = $h * 60 + $m;
                 $late         = max(0, $in_min - $cutoff_in);
                 $late_minutes += $late;
+            }
+
+            if (!empty($rec['out'])) {
+                list($h, $m)        = array_map('intval', explode(':', $rec['out']));
+                $out_min            = $h * 60 + $m;
+                $under              = max(0, $cutoff_out - $out_min);
+                $undertime_minutes += $under;
             }
         } elseif ($is_past) {
             $absent_days++;
@@ -114,15 +124,16 @@ while ($cursor <= $end) {
 }
 
 echo json_encode([
-    'success'      => true,
-    'date_from'    => $date_from,
-    'date_to'      => $date_to,
-    'days_worked'  => $days_worked,
-    'absent_days'  => $absent_days,
-    'late_minutes' => $late_minutes,
-    'ot_hours'     => $ot_hours,
-    'department'   => $emp['department'],
-    'period_label' => ($dept === 'field') ? 'Weekly (Mon–Sat)' : 'Semi-Monthly',
+    'success'           => true,
+    'date_from'         => $date_from,
+    'date_to'           => $date_to,
+    'days_worked'       => $days_worked,
+    'absent_days'       => $absent_days,
+    'late_minutes'      => $late_minutes,
+    'undertime_minutes' => $undertime_minutes,
+    'ot_hours'          => $ot_hours,
+    'department'        => $emp['department'],
+    'period_label'      => ($dept === 'field') ? 'Weekly (Mon–Sat)' : 'Semi-Monthly',
 ]);
 
 $conn->close();
