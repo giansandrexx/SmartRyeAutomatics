@@ -82,6 +82,7 @@ async function loadAll() {
     allContracts  = Array.isArray(contracts) ? contracts : [];
     loading(false);
     updateCounts();
+    renderNBIAlerts();
     renderActive();
 }
 
@@ -93,6 +94,32 @@ function updateCounts() {
     document.getElementById('statInactive').textContent  = allUnemployed.length;
     document.getElementById('statContract').textContent  = allContracts.length;
     document.getElementById('statExpiring').textContent  = allContracts.filter(c => { const d = daysUntil(c.end_date); return d !== null && d >= 0 && d <= 30; }).length;
+}
+
+function renderNBIAlerts() {
+    const threshold = 5;
+    const expiring = allEmployees.filter(e => {
+        const d = daysUntil(e.nbi_validity);
+        return d !== null && d >= 0 && d <= threshold;
+    });
+    const expired = allEmployees.filter(e => {
+        const d = daysUntil(e.nbi_validity);
+        return d !== null && d < 0;
+    });
+    const all = [...expiring, ...expired];
+    const banner = document.getElementById('nbiAlertBanner');
+    const list = document.getElementById('nbiAlertList');
+    if (!all.length) { banner.style.display = 'none'; return; }
+    list.innerHTML = all.map(e => {
+        const d = daysUntil(e.nbi_validity);
+        const tag = d < 0
+            ? `<span class="nbi-tag expired">Expired ${Math.abs(d)}d ago</span>`
+            : d === 0
+                ? `<span class="nbi-tag today">Expires today</span>`
+                : `<span class="nbi-tag expiring">Expiring in ${d}d</span>`;
+        return `<div class="nbi-alert-row"><span class="nbi-emp-name">${e.name}</span><span class="nbi-emp-pos">${e.position||'—'}</span>${tag}</div>`;
+    }).join('');
+    banner.style.display = 'block';
 }
 
 function renderActive() {
@@ -116,12 +143,6 @@ function renderEmployees(q) {
     }
 
     const totalPages = Math.ceil(data.length / EMP_PER_PAGE);
-    
-    document.getElementById('searchInput').addEventListener('input', () => {
-    empPage = 1;
-    renderActive();
-});
-
     const start = (empPage - 1) * EMP_PER_PAGE;
     const paged = data.slice(start, start + EMP_PER_PAGE);
 
@@ -200,7 +221,6 @@ function openViewModal(id) {
             </div>
             <div>${statusBadge}</div>
         </div>
-
         <div class="vm-section-title"><i class="fas fa-user"></i> Basic Information</div>
         <div class="vm-grid">
             ${row('Phone', e.phone)}
@@ -209,7 +229,6 @@ function openViewModal(id) {
             ${row('Start Date', fmtDate(e.hire_date))}
             ${row('Address', e.address, 'full')}
         </div>
-
         <div class="vm-section-title"><i class="fas fa-id-badge"></i> Government IDs</div>
         <div class="vm-grid">
             ${row('SSS', e.sss)}
@@ -219,7 +238,6 @@ function openViewModal(id) {
             ${row("Driver's License", e.driver_license)}
             ${row('NBI Validity', `<span class="${nbiClass}">${fmtDate(e.nbi_validity)}</span>`)}
         </div>
-
         <div class="vm-section-title"><i class="fas fa-phone-alt"></i> Emergency Contact</div>
         <div class="vm-grid">
             ${row('Name', e.contact_person_name)}
@@ -467,7 +485,10 @@ function showToast(msg, isError = false) {
 document.addEventListener('DOMContentLoaded', () => {
     loadAll();
 
-    document.getElementById('searchInput').addEventListener('input', () => renderActive());
+    document.getElementById('searchInput').addEventListener('input', () => {
+        empPage = 1;
+        renderActive();
+    });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.onclick = () => switchTab(btn.dataset.tab);
