@@ -45,19 +45,20 @@ if ($r && $r->num_rows > 0) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $employee_id  = (int)$_POST['employee_id'];
-    $date_from    = $conn->real_escape_string($_POST['date_from']);
-    $date_to      = $conn->real_escape_string($_POST['date_to']);
-    $days_worked  = (float)$_POST['days_worked'];
-    $absent_days  = (float)($_POST['absent_days']      ?? 0);
-    $late_minutes = (float)($_POST['late_minutes']     ?? 0);
-    $ot_hours     = (float)($_POST['ot_hours']         ?? 0);
-    $other_deduct = (float)($_POST['other_deductions'] ?? 0);
-    $sss          = (float)($_POST['sss']              ?? 0);
-    $philhealth   = (float)($_POST['philhealth']       ?? 0);
-    $pagibig      = (float)($_POST['pagibig']          ?? 0);
-    $remarks      = $conn->real_escape_string($_POST['remarks'] ?? '');
-    $apply_gov    = isset($_POST['apply_gov']) ? 1 : 0;
+    $employee_id       = (int)$_POST['employee_id'];
+    $date_from         = $conn->real_escape_string($_POST['date_from']);
+    $date_to           = $conn->real_escape_string($_POST['date_to']);
+    $days_worked       = (float)$_POST['days_worked'];
+    $absent_days       = (float)($_POST['absent_days']       ?? 0);
+    $late_minutes      = (float)($_POST['late_minutes']      ?? 0);
+    $undertime_minutes = (float)($_POST['undertime_minutes'] ?? 0);
+    $ot_hours          = (float)($_POST['ot_hours']          ?? 0);
+    $other_deduct      = (float)($_POST['other_deductions']  ?? 0);
+    $sss               = (float)($_POST['sss']               ?? 0);
+    $philhealth        = (float)($_POST['philhealth']        ?? 0);
+    $pagibig           = (float)($_POST['pagibig']           ?? 0);
+    $remarks           = $conn->real_escape_string($_POST['remarks'] ?? '');
+    $apply_gov         = isset($_POST['apply_gov']) ? 1 : 0;
 
     $emp_r = $conn->query("SELECT daily_rate, department FROM employees WHERE id = $employee_id");
     if ($emp_r && $emp_r->num_rows > 0) {
@@ -67,11 +68,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hours_per_day = $is_field ? 10 : 8;
         $hourly_rate   = $daily_rate / $hours_per_day;
 
-        $basic_pay     = $daily_rate * $days_worked;
-        $ot_pay        = $hourly_rate * 1.25 * $ot_hours;
-        $absent_deduct = 0;
-        $late_deduct   = ($hourly_rate / 60) * max(0, $late_minutes - $setting_grace);
-        $gross_pay     = $basic_pay + $ot_pay - $late_deduct;
+        $basic_pay        = $daily_rate * $days_worked;
+        $ot_pay           = $hourly_rate * 1.25 * $ot_hours;
+        $late_deduct      = ($hourly_rate / 60) * max(0, $late_minutes - $setting_grace);
+        $undertime_deduct = ($hourly_rate / 60) * $undertime_minutes;
+        $gross_pay        = $basic_pay + $ot_pay - $late_deduct - $undertime_deduct;
 
         $gov_sss = $apply_gov ? $sss        : 0;
         $gov_ph  = $apply_gov ? $philhealth : 0;
@@ -89,12 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             days_worked DECIMAL(5,2) NOT NULL DEFAULT 0,
             absent_days DECIMAL(5,2) NOT NULL DEFAULT 0,
             late_minutes DECIMAL(8,2) NOT NULL DEFAULT 0,
+            undertime_minutes DECIMAL(8,2) NOT NULL DEFAULT 0,
             ot_hours DECIMAL(5,2) NOT NULL DEFAULT 0,
             daily_rate DECIMAL(12,2) NOT NULL DEFAULT 0,
             basic_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
             ot_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
-            absent_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
             late_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
+            undertime_deduction DECIMAL(12,2) NOT NULL DEFAULT 0,
             gross_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
             sss DECIMAL(12,2) NOT NULL DEFAULT 0,
             philhealth DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -108,11 +110,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
 
-        $stmt = $conn->prepare("INSERT INTO payroll_entries (employee_id, date_from, date_to, days_worked, absent_days, late_minutes, ot_hours, daily_rate, basic_pay, ot_pay, absent_deduction, late_deduction, gross_pay, sss, philhealth, pagibig, cash_advance, other_deductions, total_deductions, net_pay, remarks, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        $stmt->bind_param("issdddddddddddddddddsi",
+        $stmt = $conn->prepare("INSERT INTO payroll_entries (
+            employee_id, date_from, date_to,
+            days_worked, absent_days, late_minutes, undertime_minutes, ot_hours,
+            daily_rate, basic_pay, ot_pay,
+            late_deduction, undertime_deduction, gross_pay,
+            sss, philhealth, pagibig, cash_advance, other_deductions, total_deductions, net_pay,
+            remarks, created_by
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+
+        $stmt->bind_param("issdddddddddddddddddddsi",
             $employee_id, $date_from, $date_to,
-            $days_worked, $absent_days, $late_minutes, $ot_hours,
-            $daily_rate, $basic_pay, $ot_pay, $absent_deduct, $late_deduct, $gross_pay,
+            $days_worked, $absent_days, $late_minutes, $undertime_minutes, $ot_hours,
+            $daily_rate, $basic_pay, $ot_pay,
+            $late_deduct, $undertime_deduct, $gross_pay,
             $gov_sss, $gov_ph, $gov_pi, $ca, $other_deduct, $total_deductions, $net_pay,
             $remarks, $_SESSION['user_id']
         );
@@ -120,7 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $message      = "Payroll saved! Net Pay: ₱" . number_format($net_pay, 2);
             $message_type = 'success';
-
             if ($ca > 0) {
                 $conn->query("UPDATE cash_advances SET status = 'deducted' WHERE employee_id = $employee_id AND status = 'pending'");
             }
@@ -227,7 +237,7 @@ $conn->close();
                             <input type="number" class="fc" name="days_worked" id="daysWorked" min="0" max="15" step="0.5" placeholder="0" required>
                         </div>
                         <div class="form-group">
-                            <label>Absent Days</label>
+                            <label>Absent Days <span class="hint"></span>For record only</label>
                             <input type="number" class="fc" name="absent_days" id="absentDays" min="0" step="0.5" placeholder="0">
                         </div>
                     </div>
@@ -239,11 +249,15 @@ $conn->close();
                             <input type="number" class="fc" name="late_minutes" id="lateMinutes" min="0" step="1" placeholder="0">
                         </div>
                         <div class="form-group">
+                            <label>Undertime <span class="hint" id="undertimeHint">minutes</span></label>
+                            <input type="number" class="fc" name="undertime_minutes" id="undertimeMinutes" min="0" step="1" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label>Overtime <span class="hint">hours · ×1.25</span></label>
                             <input type="number" class="fc" name="ot_hours" id="otHours" min="0" step="0.5" placeholder="0">
                         </div>
-                    </div>
-                    <div class="form-row single">
                         <div class="form-group">
                             <label>Other Deductions (₱)</label>
                             <input type="number" class="fc" name="other_deductions" id="otherDeductions" min="0" step="0.01" placeholder="0.00">
@@ -286,8 +300,8 @@ $conn->close();
                 </div>
                 <div class="c-section">
                     <div class="c-stitle">Attendance Deductions</div>
-                    <div class="c-row"><span class="l">Absent</span><span class="v neg" id="cAbsent">– ₱0.00</span></div>
                     <div class="c-row"><span class="l" id="cLateLbl">Late (0 min)</span><span class="v neg" id="cLate">– ₱0.00</span></div>
+                    <div class="c-row"><span class="l" id="cUndertimeLbl">Undertime (0 min)</span><span class="v neg" id="cUndertime">– ₱0.00</span></div>
                 </div>
                 <div class="gross-row"><span class="l">GROSS PAY</span><span class="v" id="cGross">₱0.00</span></div>
                 <div class="c-section">
@@ -347,54 +361,55 @@ function compute() {
     const maxDays     = isField ? 6 : 15;
     const rate        = emp ? parseFloat(emp.daily_rate) : 0;
     const hourlyRate  = rate > 0 ? rate / hoursPerDay : 0;
+    const perMin      = hourlyRate / 60;
 
-    document.getElementById('daysWorked').max       = maxDays;
-    document.getElementById('daysHint').textContent = isField ? 'Max 6/week' : 'Max 15/period';
-    document.getElementById('lateHint').textContent = emp
-        ? `minutes · ₱${(hourlyRate/60).toFixed(4)}/min`
-        : 'minutes';
+    document.getElementById('daysWorked').max            = maxDays;
+    document.getElementById('daysHint').textContent      = isField ? 'Max 6/week' : 'Max 15/period';
+    document.getElementById('lateHint').textContent      = emp ? `minutes · ₱${perMin.toFixed(4)}/min` : 'minutes';
+    document.getElementById('undertimeHint').textContent = emp ? `minutes · ₱${perMin.toFixed(4)}/min` : 'minutes';
 
-    const days   = parseFloat(document.getElementById('daysWorked').value)     || 0;
-    const absent = parseFloat(document.getElementById('absentDays').value)      || 0;
-    const late   = parseFloat(document.getElementById('lateMinutes').value)     || 0;
-    const ot     = parseFloat(document.getElementById('otHours').value)         || 0;
-    const other  = parseFloat(document.getElementById('otherDeductions').value) || 0;
-    const gov    = document.getElementById('applyGov').checked;
-    const sss    = gov ? (parseFloat(document.getElementById('sssInput').value)        || 0) : 0;
-    const ph     = gov ? (parseFloat(document.getElementById('philhealthInput').value) || 0) : 0;
-    const pi     = gov ? (parseFloat(document.getElementById('pagibigInput').value)    || 0) : 0;
-    const caObj  = id ? CA[id] : null;
-    const ca     = caObj ? caObj.total : 0;
+    const days      = parseFloat(document.getElementById('daysWorked').value)       || 0;
+    const late      = parseFloat(document.getElementById('lateMinutes').value)      || 0;
+    const undertime = parseFloat(document.getElementById('undertimeMinutes').value) || 0;
+    const ot        = parseFloat(document.getElementById('otHours').value)          || 0;
+    const other     = parseFloat(document.getElementById('otherDeductions').value)  || 0;
+    const gov       = document.getElementById('applyGov').checked;
+    const sss       = gov ? (parseFloat(document.getElementById('sssInput').value)        || 0) : 0;
+    const ph        = gov ? (parseFloat(document.getElementById('philhealthInput').value) || 0) : 0;
+    const pi        = gov ? (parseFloat(document.getElementById('pagibigInput').value)    || 0) : 0;
+    const caObj     = id ? CA[id] : null;
+    const ca        = caObj ? caObj.total : 0;
 
-    const basic   = rate * days;
-    const otPay   = hourlyRate * 1.25 * ot;
-    const absDed  = 0;
-    const lateDed = (hourlyRate / 60) * Math.max(0, late - SETTINGS.grace);
-    const gross   = basic + otPay - lateDed;
-    const totDed  = sss + ph + pi + ca + other;
-    const net     = gross - totDed;
+    const basic        = rate * days;
+    const otPay        = hourlyRate * 1.25 * ot;
+    const lateDed      = perMin * Math.max(0, late - SETTINGS.grace);
+    const undertimeDed = perMin * undertime;
+    const gross        = basic + otPay - lateDed - undertimeDed;
+    const totDed       = sss + ph + pi + ca + other;
+    const net          = gross - totDed;
 
-    document.getElementById('cRate').textContent     = p(rate);
-    document.getElementById('cHourly').textContent   = p(hourlyRate) + '/hr (' + hoursPerDay + 'h day)';
-    document.getElementById('cBasicLbl').textContent = 'Basic Pay (' + days + ' days)';
-    document.getElementById('cBasic').textContent    = p(basic);
-    document.getElementById('cOtLbl').textContent    = `Overtime Pay (${ot}h × 1.25)`;
-    document.getElementById('cOt').textContent       = p(otPay);
-    document.getElementById('cAbsent').textContent   = '– ' + p(absDed);
-    document.getElementById('cLateLbl').textContent  = `Late (${late} min)`;
-    document.getElementById('cLate').textContent     = '– ' + p(lateDed);
-    document.getElementById('cGross').textContent    = p(gross);
-    document.getElementById('govNoneTxt').style.display = gov ? 'none'  : 'block';
-    document.getElementById('govApplied').style.display = gov ? 'block' : 'none';
-    document.getElementById('cSss').textContent   = p(sss);
-    document.getElementById('cPh').textContent    = p(ph);
-    document.getElementById('cPi').textContent    = p(pi);
+    document.getElementById('cRate').textContent         = p(rate);
+    document.getElementById('cHourly').textContent       = p(hourlyRate);
+    document.getElementById('cBasicLbl').textContent     = 'Basic Pay (' + days + ' days)';
+    document.getElementById('cBasic').textContent        = p(basic);
+    document.getElementById('cOtLbl').textContent        = `Overtime Pay (${ot}h × 1.25)`;
+    document.getElementById('cOt').textContent           = p(otPay);
+    document.getElementById('cLateLbl').textContent      = `Late (${late} min)`;
+    document.getElementById('cLate').textContent         = '– ' + p(lateDed);
+    document.getElementById('cUndertimeLbl').textContent = `Undertime (${undertime} min)`;
+    document.getElementById('cUndertime').textContent    = '– ' + p(undertimeDed);
+    document.getElementById('cGross').textContent        = p(gross);
+    document.getElementById('govNoneTxt').style.display  = gov ? 'none'  : 'block';
+    document.getElementById('govApplied').style.display  = gov ? 'block' : 'none';
+    document.getElementById('cSss').textContent          = p(sss);
+    document.getElementById('cPh').textContent           = p(ph);
+    document.getElementById('cPi').textContent           = p(pi);
     const caEl = document.getElementById('cCa');
     caEl.textContent = p(ca);
     caEl.title = caObj ? (caObj.breakdown || '') : '';
-    document.getElementById('cOther').textContent = p(other);
-    document.getElementById('cTotal').textContent = p(totDed);
-    document.getElementById('cNet').textContent   =
+    document.getElementById('cOther').textContent        = p(other);
+    document.getElementById('cTotal').textContent        = p(totDed);
+    document.getElementById('cNet').textContent          =
         parseFloat(net||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
     const sub = document.getElementById('cSub');
@@ -434,12 +449,13 @@ async function fetchAttendanceSummary(empId) {
             return;
         }
 
-        document.getElementById('dateFrom').value    = data.date_from;
-        document.getElementById('dateTo').value      = data.date_to;
-        document.getElementById('daysWorked').value  = data.days_worked;
-        document.getElementById('absentDays').value  = data.absent_days;
-        document.getElementById('lateMinutes').value = data.late_minutes;
-        document.getElementById('otHours').value     = data.ot_hours;
+        document.getElementById('dateFrom').value         = data.date_from;
+        document.getElementById('dateTo').value           = data.date_to;
+        document.getElementById('daysWorked').value       = data.days_worked;
+        document.getElementById('absentDays').value       = data.absent_days;
+        document.getElementById('lateMinutes').value      = data.late_minutes;
+        document.getElementById('undertimeMinutes').value = data.undertime_minutes;
+        document.getElementById('otHours').value          = data.ot_hours;
 
         banner.className   = 'fetch-banner success';
         icon.className     = 'fas fa-check-circle fetch-icon';
@@ -478,7 +494,7 @@ document.getElementById('fetchBtn').addEventListener('click', function () {
     if (id) fetchAttendanceSummary(id);
 });
 
-['daysWorked','absentDays','lateMinutes','otHours','otherDeductions',
+['daysWorked','absentDays','lateMinutes','undertimeMinutes','otHours','otherDeductions',
  'sssInput','philhealthInput','pagibigInput'].forEach(function(id) {
     const el = document.getElementById(id);
     if (el) { el.addEventListener('input', compute); el.addEventListener('change', compute); }
