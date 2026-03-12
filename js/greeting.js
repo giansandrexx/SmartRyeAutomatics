@@ -8,12 +8,13 @@
 
   let greeting;
   if (hour >= 5 && hour < 12) {
-    greeting = 'Good Morning';
+    greeting = 'Good morning';
   } else if (hour >= 12 && hour < 18) {
-    greeting = 'Good Afternoon';
+    greeting = 'Good afternoon';
   } else {
-    greeting = 'Good Evening';
+    greeting = 'Good evening';
   }
 
   el.textContent = greeting + (fullName ? ', ' + fullName + '!' : '!');
+
 })();
