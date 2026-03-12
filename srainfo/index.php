@@ -104,11 +104,22 @@ if (!isset($_SESSION['user_id'])) { header("Location: ../config.php"); exit(); }
         <div class="stat-card">
             <div class="stat-icon amber"><i class="fas fa-exclamation-triangle"></i></div>
             <div>
-                <div class="stat-label">Expiring Contracts (30 days)</div>
+                <div class="stat-label">Expiring Contracts</div>
                 <div class="stat-value" id="statExpiring">0</div>
             </div>
         </div>
     </div>
+
+    <div id="nbiAlertBanner" class="nbi-alert-banner" style="display:none">
+    <div class="nbi-alert-inner">
+        <div class="nbi-alert-icon"><i class="fas fa-id-card"></i></div>
+        <div class="nbi-alert-content">
+            <div class="nbi-alert-title">NBI Validity Alert</div>
+            <div class="nbi-alert-list" id="nbiAlertList"></div>
+        </div>
+        <button class="nbi-alert-close" onclick="document.getElementById('nbiAlertBanner').style.display='none'"><i class="fas fa-times"></i></button>
+    </div>
+</div>
 
     <div class="tab-bar">
         <button class="tab-btn active" data-tab="employees">
