@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             remarks, created_by
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
-        $stmt->bind_param("issdddddddddddddddddddsi",
+        $stmt->bind_param("issddddddddddddddddddsi",
             $employee_id, $date_from, $date_to,
             $days_worked, $absent_days, $late_minutes, $undertime_minutes, $ot_hours,
             $daily_rate, $basic_pay, $ot_pay,
@@ -510,3 +510,4 @@ compute();
 </script>
 </body>
 </html>
+
