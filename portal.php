@@ -37,6 +37,65 @@ if ($user_role === 'moderator') {
 function canAccess($key, $perms) {
     return in_array($key, $perms);
 }
+
+$cards = [];
+
+if (canAccess('tool_room', $user_permissions)) {
+    $cards[] = [
+        'icon'  => 'fa-tools',
+        'title' => 'SRA Tool Room',
+        'desc'  => 'Tool borrowing, returns, inventory &amp; overdue monitoring.',
+        'label' => 'Access Tool Room',
+        'href'  => 'sratool/dashboard',
+    ];
+}
+if (canAccess('scheduling', $user_permissions)) {
+    $cards[] = [
+        'icon'  => 'fa-calendar-alt',
+        'title' => 'SRA Event Scheduling',
+        'desc'  => 'Appointments, resource planning &amp; team coordination.',
+        'label' => 'Access Scheduling',
+        'href'  => 'scheduling/scheduling',
+    ];
+}
+if (canAccess('attendance', $user_permissions)) {
+    $cards[] = [
+        'icon'  => 'fa-address-book',
+        'title' => 'SRA Attendance',
+        'desc'  => 'Attendance monitoring, work hours tracking &amp; leave administration.',
+        'label' => 'Access Attendance',
+        'href'  => 'srattend/index',
+    ];
+}
+if (canAccess('payroll', $user_permissions)) {
+    $cards[] = [
+        'icon'  => 'fa-calculator',
+        'title' => 'SRA Payroll',
+        'desc'  => 'Automate salaries, deductions, and payslips with ease.',
+        'label' => 'Access Payroll',
+        'href'  => 'srapayroll/dashboard',
+    ];
+}
+if (canAccess('employee_info', $user_permissions)) {
+    $cards[] = [
+        'icon'  => 'fa-id-card',
+        'title' => 'Employee Information',
+        'desc'  => 'Manage employee informations, departments, positions &amp; records.',
+        'label' => 'Access Employee Info',
+        'href'  => 'srainfo/index',
+    ];
+}
+if ($user_role === 'moderator') {
+    $cards[] = [
+        'icon'  => 'fa-clipboard-list',
+        'title' => 'System Logs',
+        'desc'  => 'Monitor all activity, changes &amp; actions across every system.',
+        'label' => 'View System Logs',
+        'href'  => 'system_logs',
+    ];
+}
+
+$cardCount = count($cards);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,22 +155,34 @@ function canAccess($key, $perms) {
             <p>Select a management system to access</p>
         </div>
 
-        <div class="systems-grid">
+        <div class="systems-grid" id="skeleton-grid" aria-hidden="true">
+            <?php for ($i = 0; $i < max($cardCount, 1); $i++): ?>
+            <div class="system-card skeleton-card">
+                <div class="system-card-header skel-header">
+                    <div class="skeleton-icon skel"></div>
+                    <div class="skeleton-title skel"></div>
+                </div>
+                <div class="system-card-body">
+                    <div class="skeleton-line skel"></div>
+                    <div class="skeleton-line skel" style="width:70%"></div>
+                    <div class="skeleton-btn skel"></div>
+                </div>
+            </div>
+            <?php endfor; ?>
+        </div>
+
+        <!-- ─── Real grid (hidden until JS reveals it) ─── -->
+        <div class="systems-grid" id="real-grid" style="display:none;" aria-live="polite">
 
             <?php if (canAccess('tool_room', $user_permissions)): ?>
             <div class="system-card">
                 <div class="system-card-header">
-                    <div class="system-icon">
-                        <i class="fas fa-tools"></i>
-                    </div>
+                    <div class="system-icon"><i class="fas fa-tools"></i></div>
                     <h3>SRA Tool Room</h3>
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Tool borrowing, returns, inventory &amp; overdue monitoring.</p>
-                    <a href="sratool/dashboard"
-                       class="system-btn"
-                       data-navigate="sratool/dashboard"
-                       data-room-name="Tool Room">
+                    <a href="sratool/dashboard" class="system-btn" data-navigate="sratool/dashboard" data-room-name="Tool Room">
                         Access Tool Room <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
@@ -121,17 +192,12 @@ function canAccess($key, $perms) {
             <?php if (canAccess('scheduling', $user_permissions)): ?>
             <div class="system-card">
                 <div class="system-card-header">
-                    <div class="system-icon">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
+                    <div class="system-icon"><i class="fas fa-calendar-alt"></i></div>
                     <h3>SRA Event Scheduling</h3>
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Appointments, resource planning &amp; team coordination.</p>
-                    <a href="scheduling/scheduling"
-                       class="system-btn"
-                       data-navigate="srahr/dashboard"
-                       data-room-name="SRA Scheduling">
+                    <a href="scheduling/scheduling" class="system-btn" data-navigate="srahr/dashboard" data-room-name="SRA Scheduling">
                         Access Scheduling <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
@@ -141,17 +207,12 @@ function canAccess($key, $perms) {
             <?php if (canAccess('attendance', $user_permissions)): ?>
             <div class="system-card">
                 <div class="system-card-header">
-                    <div class="system-icon">
-                        <i class="fa fa-address-book"></i>
-                    </div>
+                    <div class="system-icon"><i class="fa fa-address-book"></i></div>
                     <h3>SRA Attendance</h3>
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Attendance monitoring, work hours tracking &amp; leave administration.</p>
-                    <a href="srattend/index"
-                       class="system-btn"
-                       data-navigate="srattend/index"
-                       data-room-name="SRA Attendance">
+                    <a href="srattend/index" class="system-btn" data-navigate="srattend/index" data-room-name="SRA Attendance">
                         Access Attendance <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
@@ -161,17 +222,12 @@ function canAccess($key, $perms) {
             <?php if (canAccess('payroll', $user_permissions)): ?>
             <div class="system-card">
                 <div class="system-card-header">
-                    <div class="system-icon">
-                        <i class="fa fa-calculator"></i>
-                    </div>
+                    <div class="system-icon"><i class="fa fa-calculator"></i></div>
                     <h3>SRA Payroll</h3>
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Automate salaries, deductions, and payslips with ease.</p>
-                    <a href="srapayroll/dashboard"
-                       class="system-btn"
-                       data-navigate="srapayroll/dashboard"
-                       data-room-name="SRA Payroll">
+                    <a href="srapayroll/dashboard" class="system-btn" data-navigate="srapayroll/dashboard" data-room-name="SRA Payroll">
                         Access Payroll <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
@@ -181,17 +237,12 @@ function canAccess($key, $perms) {
             <?php if (canAccess('employee_info', $user_permissions)): ?>
             <div class="system-card">
                 <div class="system-card-header">
-                    <div class="system-icon">
-                        <i class="fas fa-id-card"></i>
-                    </div>
+                    <div class="system-icon"><i class="fas fa-id-card"></i></div>
                     <h3>Employee Information</h3>
                 </div>
                 <div class="system-card-body">
                     <p class="system-description">Manage employee informations, departments, positions &amp; records.</p>
-                    <a href="srainfo/index"
-                       class="system-btn"
-                       data-navigate="srainfo/index"
-                       data-room-name="Employee Information">
+                    <a href="srainfo/index" class="system-btn" data-navigate="srainfo/index" data-room-name="Employee Information">
                         Access Employee Info <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
@@ -199,21 +250,19 @@ function canAccess($key, $perms) {
             <?php endif; ?>
 
             <?php if ($user_role === 'moderator'): ?>
-<div class="system-card">
-    <div class="system-card-header">
-        <div class="system-icon">
-            <i class="fas fa-clipboard-list"></i>
-        </div>
-        <h3>System Logs</h3>
-    </div>
-    <div class="system-card-body">
-        <p class="system-description">Monitor all activity, changes &amp; actions across every system.</p>
-        <a href="system_logs" class="system-btn">
-            View System Logs <i class="fas fa-arrow-right"></i>
-        </a>
-    </div>
-</div>
-<?php endif; ?>
+            <div class="system-card">
+                <div class="system-card-header">
+                    <div class="system-icon"><i class="fas fa-clipboard-list"></i></div>
+                    <h3>System Logs</h3>
+                </div>
+                <div class="system-card-body">
+                    <p class="system-description">Monitor all activity, changes &amp; actions across every system.</p>
+                    <a href="system_logs" class="system-btn">
+                        View System Logs <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <?php if (empty($user_permissions)): ?>
             <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: #94a3b8;">
@@ -230,7 +279,6 @@ function canAccess($key, $perms) {
     <script src="js/portal_transition.js"></script>
     <script src="js/dropdown.js"></script>
     <script src="js/greeting.js"></script>
+    <script src="js/skeleton.js"></script>
 </body>
 </html>
-
-
